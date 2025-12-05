@@ -108,35 +108,37 @@ export default function Home() {
             </button>
           </div>
         </header>
-        <div className="mb-12 bg-gray-900/60 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 hover:border-blue-500/30 transition-all">
-          <h3 className="text-xl font-bold mb-4 flex items-center">
-            <span className="mr-2">🚀</span> 发射你的光子
-          </h3>
-          <p className="text-gray-400 mb-4 text-sm">
-            写下你的行业瞬间、预言或只有圈内人才懂的黑话...
-          </p>
-          
-          <textarea 
-            className="w-full h-32 bg-black/40 border border-gray-700 rounded-xl p-4 mb-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition"
-            placeholder="例：2024年春，第一次看到端到端模型在实车上运行，感觉整个规控架构都要重写了..."
-          />
-          
-          <div className="flex flex-wrap gap-3 mb-4">
-            <button className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition">🔵 那个瞬间</button>
-            <button className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition">🟣 预言胶囊</button>
-            <button className="px-4 py-2 bg-amber-500/20 text-amber-300 rounded-lg hover:bg-amber-500/30 transition">🟡 行业黑话</button>
-            <button className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition">🏢 选择公司...</button>
+       {/* ===================== 光子创建表单 ===================== */}
+      <div className="mb-12 bg-gray-900/60 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 hover:border-blue-500/30 transition-all">
+        <h3 className="text-xl font-bold mb-4 flex items-center">
+          <span className="mr-2">🚀</span> 发射你的光子
+        </h3>
+        <p className="text-gray-400 mb-4 text-sm">
+          写下你的行业瞬间、预言或只有圈内人才懂的黑话...
+        </p>
+        
+        <textarea 
+          className="w-full h-32 bg-black/40 border border-gray-700 rounded-xl p-4 mb-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition"
+          placeholder="例：2024年春，第一次看到端到端模型在实车上运行，感觉整个规控架构都要重写了..."
+        />
+        
+        <div className="flex flex-wrap gap-3 mb-4">
+          <button className="px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition">🔵 那个瞬间</button>
+          <button className="px-4 py-2 bg-purple-500/20 text-purple-300 rounded-lg hover:bg-purple-500/30 transition">🟣 预言胶囊</button>
+          <button className="px-4 py-2 bg-amber-500/20 text-amber-300 rounded-lg hover:bg-amber-500/30 transition">🟡 行业黑话</button>
+          <button className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700 transition">🏢 选择公司...</button>
+        </div>
+        
+        <div className="flex justify-between items-center">
+          <div className="text-gray-500 text-sm">
+            ✨ 每个光子都将成为行业历史的一部分
           </div>
-          
-          <div className="flex justify-between items-center">
-            <div className="text-gray-500 text-sm">
-              ✨ 每个光子都将成为行业历史的一部分
-            </div>
-            <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:opacity-90 hover:scale-105 transition-all shadow-lg shadow-blue-500/20">
-              发射光子
-            </button>
-          </div>
-        </div>    
+          <button className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:opacity-90 hover:scale-105 transition-all shadow-lg shadow-blue-500/20">
+            发射光子
+          </button>
+        </div>
+      </div>
+      {/* ===================== 表单结束 ===================== */}
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
           <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">

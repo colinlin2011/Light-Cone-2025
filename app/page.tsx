@@ -108,10 +108,6 @@ export default function Home() {
             </button>
           </div>
         </header>
-          </div>
-        </header>
-        {/* ===================== 在这里添加！ ===================== */}
-        {/* 光子创建表单 - 临时版 */}
         <div className="mb-12 bg-gray-900/60 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50 hover:border-blue-500/30 transition-all">
           <h3 className="text-xl font-bold mb-4 flex items-center">
             <span className="mr-2">🚀</span> 发射你的光子
@@ -140,9 +136,7 @@ export default function Home() {
               发射光子
             </button>
           </div>
-        </div>
-        {/* ===================== 添加结束 ===================== */}
-        
+        </div>    
         {/* 统计卡片 */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
           <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">

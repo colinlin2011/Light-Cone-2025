@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 // ============ 第一步：配置Supabase ============
 // 请替换成你自己的Supabase配置
 const SUPABASE_URL = "https://xqkatvrwddkyowikjdtg.supabase.co";  // 替换为你的Project URL
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhxa2F0dnJ3ZGRreW93aWtqZHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzQ0OTQsImV4cCI6MjA4MDYxMDQ5NH0.VdJwt3R2FCglq0RfZ1hIRYuCQnQbLi0l-9JDw-7giJ0";  // 替换为你的anon key
+const SUPABASE_ANON_KEY = "sb_publishable_cOQpZCLenJHdtGySAH7Zyg_Sgt2Apir";  // 替换为你的anon key
 
 // 创建Supabase客户端
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

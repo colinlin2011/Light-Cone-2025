@@ -5,8 +5,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // ============ 第一步：配置Supabase ============
 // 请替换成你自己的Supabase配置
-const SUPABASE_URL = "https://xqkatvrwddkyowikjdtg.supabase.co";  // 替换为你的Project URL
-const SUPABASE_ANON_KEY = "sb_publishable_cOQpZCLenJHdtGySAH7Zyg_Sgt2Apir";  // 替换为你的anon key
+const SUPABASE_URL = "https://xqkatvrwddkyowikjdtg.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_cOQpZCLenJHdtGySAH7Zyg_Sgt2Apir";
 
 // 创建Supabase客户端
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);

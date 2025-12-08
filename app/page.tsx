@@ -3,12 +3,10 @@
 import { useState, useEffect } from "react";
 import { createClient } from '@supabase/supabase-js';
 
-// ============ 第一步：配置Supabase,添加依赖 ============
-// 请替换成你自己的Supabase配置
-const SUPABASE_URL = "https://xqkatvrwddkyowikjdtg.supabase.co";  // 替换为你的Project URL
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhxa2F0dnJ3ZGRreW93aWtqZHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzQ0OTQsImV4cCI6MjA4MDYxMDQ5NH0.VdJwt3R2FCglq0RfZ1hIRYuCQnQbLi0l-9JDw-7giJ0";  // 替换为你的anon key
-
-// 创建Supabase客户端
+// ============ 你的Supabase配置（新加坡） ============
+// 使用你提供的JWT格式anon key
+const SUPABASE_URL = "https://xqkatvrwddkyowikjdtg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhxa2F0dnJ3ZGRreW93aWtqZHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzQ0OTQsImV4cCI6MjA4MDYxMDQ5NH0.VdJwt3R2FCglq0RfZ1hIRYuCQnQbLi0l-9JDw-7giJ0";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ============ 光子模板定义 ============
@@ -92,7 +90,7 @@ const PHOTON_TEMPLATES = [
   }
 ];
 
-// ============ 公司颜色映射 ============
+// 公司颜色映射
 const COMPANY_COLORS: Record<string, string> = {
   "华为": "border-red-500/30",
   "蔚来": "border-blue-500/30", 
@@ -104,7 +102,6 @@ const COMPANY_COLORS: Record<string, string> = {
   "其他": "border-gray-700/30"
 };
 
-// ============ 主组件 ============
 export default function Home() {
   // 状态管理
   const [selectedTemplate, setSelectedTemplate] = useState(PHOTON_TEMPLATES[0]);
@@ -113,18 +110,39 @@ export default function Home() {
   const [authorCompany, setAuthorCompany] = useState("");
   const [authorProfession, setAuthorProfession] = useState("");
   const [photons, setPhotons] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [dbStatus, setDbStatus] = useState<"checking" | "connected" | "error">("checking");
 
-  // ============ 加载光子数据 ============
+  // 加载光子数据
   useEffect(() => {
     loadPhotons();
   }, []);
 
   const loadPhotons = async () => {
     setIsLoading(true);
+    setDbStatus("checking");
+    
     try {
+      console.log("正在连接Supabase...", SUPABASE_URL);
+      
+      // 先测试连接
+      const { data: testData, error: testError } = await supabase
+        .from('photons')
+        .select('count', { count: 'exact', head: true });
+        
+      if (testError) {
+        console.error("Supabase连接测试失败:", testError);
+        setDbStatus("error");
+        setPhotons(getInitialPhotons());
+        return;
+      }
+      
+      console.log("Supabase连接成功!");
+      setDbStatus("connected");
+      
+      // 加载光子数据
       const { data, error } = await supabase
         .from('photons')
         .select('*')
@@ -133,11 +151,10 @@ export default function Home() {
 
       if (error) {
         console.error('加载光子失败:', error);
-        // 如果数据库为空，使用初始数据
         setPhotons(getInitialPhotons());
-      } else {
-        // 转换数据库数据为前端格式
-        const formattedPhotons = data.map((photon: any, index: number) => ({
+      } else if (data && data.length > 0) {
+        // 转换数据库数据
+        const formattedPhotons = data.map((photon: any) => ({
           id: photon.id,
           content: photon.content,
           author: `${photon.author_name || '匿名用户'}${photon.author_profession ? ` · ${photon.author_profession}` : ''}${photon.author_company ? ` @ ${photon.author_company}` : ''}`,
@@ -148,18 +165,19 @@ export default function Home() {
           author_name: photon.author_name,
           author_company: photon.author_company,
           author_profession: photon.author_profession,
+          created_at: photon.created_at,
           isFromDB: true
         }));
         
-        // 如果数据库有数据就使用，否则用初始数据
-        if (formattedPhotons.length > 0) {
-          setPhotons(formattedPhotons);
-        } else {
-          setPhotons(getInitialPhotons());
-        }
+        setPhotons(formattedPhotons);
+        console.log("从数据库加载了", formattedPhotons.length, "个光子");
+      } else {
+        console.log("数据库为空，使用示例数据");
+        setPhotons(getInitialPhotons());
       }
     } catch (error) {
       console.error('加载光子异常:', error);
+      setDbStatus("error");
       setPhotons(getInitialPhotons());
     } finally {
       setIsLoading(false);
@@ -187,29 +205,18 @@ export default function Home() {
       time: "2024-03-14",
       company: "蔚来",
       isFromDB: false
-    },
-    {
-      id: 3,
-      content: "今天又在这个路口接管的记录被清空了，感知和规控继续扯皮。",
-      author: "测试工程师 @ 小鹏", 
-      type: "culture",
-      likes: 36,
-      time: "2024-03-13",
-      company: "小鹏",
-      isFromDB: false
     }
   ];
 
-  // ============ 选择模板 ============
+  // 选择模板
   const handleTemplateSelect = (template: typeof PHOTON_TEMPLATES[0]) => {
     setSelectedTemplate(template);
-    // 如果内容为空，可以自动填入示例
     if (!photonContent.trim()) {
       setPhotonContent(template.example);
     }
   };
 
-  // ============ 提交光子 ============
+  // 提交光子
   const handleSubmit = async () => {
     if (!photonContent.trim()) {
       alert("请先写下你的光子内容！");
@@ -220,6 +227,8 @@ export default function Home() {
     setSubmitSuccess(false);
 
     try {
+      console.log("正在提交光子到Supabase...");
+      
       const { data, error } = await supabase
         .from('photons')
         .insert([
@@ -236,9 +245,9 @@ export default function Home() {
 
       if (error) {
         console.error('提交失败:', error);
-        alert(`提交失败: ${error.message}\n\n请检查Supabase配置是否正确。`);
+        alert(`❌ 提交失败: ${error.message}\n\n请检查控制台查看详细错误。`);
       } else {
-        console.log('提交成功:', data);
+        console.log('✅ 提交成功:', data);
         setSubmitSuccess(true);
         
         // 清空表单
@@ -248,28 +257,40 @@ export default function Home() {
         setAuthorProfession("");
         
         // 重新加载光子列表
-        setTimeout(() => loadPhotons(), 1000);
-        
-        // 显示成功消息
-        alert(`✨ 光子发射成功！\n\n你的声音已加入行业历史。\n感谢为自动驾驶行业留下宝贵记录！`);
+        setTimeout(() => {
+          loadPhotons();
+          alert(`✨ 光子发射成功！\n\n你的声音已永久保存到行业历史中。`);
+        }, 500);
       }
     } catch (error: any) {
       console.error('提交异常:', error);
-      alert(`提交异常: ${error.message}\n\n请确保已正确配置Supabase。`);
+      alert(`⚠️ 提交异常: ${error.message}\n\n请按F12打开控制台查看错误详情。`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // ============ 点赞光子 ============
+  // 点赞光子
   const handleLikePhoton = async (photonId: number) => {
-    // 这里先实现前端效果，后续可以添加后端点赞
+    // 这里先实现前端效果
     const updatedPhotons = photons.map(photon => 
       photon.id === photonId 
         ? { ...photon, likes: photon.likes + 1 }
         : photon
     );
     setPhotons(updatedPhotons);
+  };
+
+  // 数据库状态显示
+  const renderDbStatus = () => {
+    switch (dbStatus) {
+      case "checking":
+        return <span className="text-yellow-400">🔄 检查数据库连接...</span>;
+      case "connected":
+        return <span className="text-green-400">✅ 数据库已连接 | 当前光子数: {photons.filter(p => p.isFromDB).length}</span>;
+      case "error":
+        return <span className="text-red-400">❌ 数据库连接失败 | 使用演示模式</span>;
+    }
   };
 
   return (
@@ -307,6 +328,17 @@ export default function Home() {
             记录2024-2034这关键的十年，从L2到L4的每一个真实瞬间。
           </p>
           
+          {/* 数据库状态 */}
+          <div className={`p-3 rounded-lg mb-4 ${
+            dbStatus === "connected" ? "bg-green-500/20 border border-green-500/30" :
+            dbStatus === "error" ? "bg-red-500/20 border border-red-500/30" :
+            "bg-yellow-500/20 border border-yellow-500/30"
+          }`}>
+            <div className="flex items-center justify-center">
+              {renderDbStatus()}
+            </div>
+          </div>
+          
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             <button 
               onClick={handleSubmit}
@@ -317,26 +349,11 @@ export default function Home() {
                   : 'hover:opacity-90 hover:scale-105'
               }`}
             >
-              {isSubmitting ? '发射中...' : '✨ 发射我的光子'}
+              {isSubmitting ? '🚀 发射中...' : '✨ 发射我的光子'}
             </button>
             <button className="px-6 py-3 bg-gray-800/50 backdrop-blur-lg border border-gray-700 rounded-full font-semibold hover:bg-gray-700/50 transition">
               🌌 探索星空视图
             </button>
-          </div>
-
-          {/* Supabase状态提示 */}
-          <div className={`text-sm p-3 rounded-lg mb-4 ${SUPABASE_URL.includes('YOUR_PROJECT') ? 'bg-red-500/20 border border-red-500/30' : 'bg-green-500/20 border border-green-500/30'}`}>
-            {SUPABASE_URL.includes('YOUR_PROJECT') ? (
-              <div className="flex items-center">
-                <span className="mr-2">⚠️</span>
-                <span>请先配置Supabase数据库（见代码第8-9行）</span>
-              </div>
-            ) : (
-              <div className="flex items-center">
-                <span className="mr-2">✅</span>
-                <span>数据库已连接 | 当前光子数: {photons.filter(p => p.isFromDB).length}</span>
-              </div>
-            )}
           </div>
         </header>
 
@@ -492,40 +509,13 @@ export default function Home() {
           </div>
         </div>
 
-        {/* 统计卡片 */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-          <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-            <div className="text-2xl font-bold text-blue-400">{photons.length}</div>
-            <div className="text-gray-400">当前光子数</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {photons.filter(p => p.isFromDB).length} 条来自数据库
-            </div>
-          </div>
-          <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-            <div className="text-2xl font-bold text-purple-400">
-              {photons.reduce((sum, photon) => sum + photon.likes, 0)}
-            </div>
-            <div className="text-gray-400">总共鸣数</div>
-          </div>
-          <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-            <div className="text-2xl font-bold text-green-400">{PHOTON_TEMPLATES.length}</div>
-            <div className="text-gray-400">光子模板</div>
-          </div>
-          <div className="bg-gray-800/30 backdrop-blur-lg rounded-2xl p-6 border border-gray-700/50">
-            <div className="text-2xl font-bold text-amber-400">
-              {[...new Set(photons.map(p => p.author_name || p.author).filter(Boolean))].length}
-            </div>
-            <div className="text-gray-400">贡献同行</div>
-          </div>
-        </div>
-
         {/* 光子展示区 */}
         <div className="mb-16">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold flex items-center">
               <span className="mr-3 text-yellow-400">🌟</span> 最新光子流
               <span className="ml-4 text-sm font-normal text-gray-400">
-                {isLoading ? '加载中...' : `(共 ${photons.length} 条，按时间倒序)`}
+                {isLoading ? '加载中...' : `(共 ${photons.length} 条)`}
               </span>
             </h2>
             <div className="flex space-x-2">
@@ -535,8 +525,6 @@ export default function Home() {
               >
                 🔄 刷新
               </button>
-              <button className="px-3 py-1 bg-blue-500/20 rounded-lg text-sm">全部</button>
-              <button className="px-3 py-1 bg-purple-500/20 rounded-lg text-sm">预言胶囊</button>
             </div>
           </div>
 
@@ -593,8 +581,6 @@ export default function Home() {
                           <span className="text-xl group-hover:scale-110 transition">❤️</span>
                           <span className="ml-2 font-medium">{photon.likes}</span>
                         </button>
-                        <button className="text-gray-400 hover:text-blue-400 transition">💬</button>
-                        <button className="text-gray-400 hover:text-green-400 transition">🔗</button>
                       </div>
                     </div>
                     
@@ -614,36 +600,6 @@ export default function Home() {
           )}
         </div>
 
-        {/* 数据库状态说明 */}
-        <div className="mb-16 p-6 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-2xl border border-blue-500/20">
-          <h3 className="text-xl font-bold mb-4 flex items-center">
-            <span className="mr-2">💾</span> 数据库状态
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-bold mb-2">📊 数据统计</h4>
-              <ul className="text-sm text-gray-300 space-y-1">
-                <li>• 总光子数: <span className="text-blue-400">{photons.length}</span></li>
-                <li>• 数据库存储: <span className="text-green-400">{photons.filter(p => p.isFromDB).length}</span></li>
-                <li>• 模板使用: <span className="text-purple-400">{[...new Set(photons.map(p => p.type))].length} 种</span></li>
-                <li>• 涉及公司: <span className="text-amber-400">{[...new Set(photons.map(p => p.company))].length} 家</span></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-bold mb-2">🔧 配置说明</h4>
-              <p className="text-sm text-gray-400 mb-3">
-                如需启用完整数据库功能，请：
-              </p>
-              <ol className="text-sm text-gray-300 space-y-2">
-                <li>1. 注册 Supabase 账号</li>
-                <li>2. 创建数据库表 <code className="bg-gray-800 px-1 rounded">photons</code></li>
-                <li>3. 替换代码中的 URL 和密钥</li>
-                <li>4. 测试提交功能</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-
         {/* 底部信息 */}
         <footer className="pt-8 border-t border-gray-800 text-center">
           <div className="mb-6">
@@ -653,10 +609,7 @@ export default function Home() {
           <div className="text-gray-500 text-sm">
             <p>自动驾驶从业者的数字纪念碑</p>
             <p className="mt-1">记录2024-2034 · 从L2到L4的关键十年</p>
-            <p className="mt-2">
-              当前版本: 数据库集成 v1.0 | 
-              {SUPABASE_URL.includes('YOUR_PROJECT') ? ' 🚫 数据库待配置' : ' ✅ 数据库已连接'}
-            </p>
+            <p className="mt-2">当前版本: 数据库集成 v2.0 | 新加坡节点</p>
           </div>
         </footer>
       </div>

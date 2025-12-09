@@ -223,31 +223,39 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 内容展示区域 */}
-      <div className={`absolute inset-0 z-40 transition-all duration-500 ${viewMode !== 'starfield' ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-        {viewMode === 'list' && (
-          <div className="absolute inset-x-8 top-24 bottom-32 bg-black/80 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 overflow-y-auto">
-            <PhotonList 
-              photons={photons}
-              isLoading={isLoading}
-              onRefresh={loadPhotons}
-              templates={PHOTON_TEMPLATES}
-              companyColors={COMPANY_COLORS}
-            />
-          </div>
-        )}
-        
-        {viewMode === 'company' && (
-          <div className="absolute inset-x-8 top-24 bottom-32 bg-black/80 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 overflow-y-auto">
-            <CompanyView 
-              photons={photons}
-              isLoading={isLoading}
-              timeRange={timeRange}
-              companyColors={COMPANY_COLORS}
-            />
-          </div>
-        )}
-      </div>
+      {/* 列表视图占位符（暂时简化） */}
+{viewMode === 'list' && (
+  <div className="absolute inset-x-8 top-24 bottom-32 bg-black/80 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 overflow-y-auto">
+    <div className="text-center py-16">
+      <div className="text-6xl mb-6">📜</div>
+      <h3 className="text-2xl font-bold text-white mb-4">列表视图</h3>
+      <p className="text-gray-400 mb-8">正在开发中，敬请期待...</p>
+      <button 
+        onClick={() => setViewMode('starfield')}
+        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:scale-105 transition-transform"
+      >
+        返回星空视图
+      </button>
+    </div>
+  </div>
+)}
+
+{/* 公司视图占位符（暂时简化） */}
+{viewMode === 'company' && (
+  <div className="absolute inset-x-8 top-24 bottom-32 bg-black/80 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 overflow-y-auto">
+    <div className="text-center py-16">
+      <div className="text-6xl mb-6">🏢</div>
+      <h3 className="text-2xl font-bold text-white mb-4">公司视图</h3>
+      <p className="text-gray-400 mb-8">正在开发中，敬请期待...</p>
+      <button 
+        onClick={() => setViewMode('starfield')}
+        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:scale-105 transition-transform"
+      >
+        返回星空视图
+      </button>
+    </div>
+  </div>
+)}
 
       {/* 添加光子模态框 */}
       {isAddModalOpen && (

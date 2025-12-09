@@ -1,57 +1,148 @@
-// components/PhotonList.tsx
-import { Photon } from '@/lib/types';
-import { PHOTON_TEMPLATES } from '@/lib/templates';
-import { getCompanyColor } from '@/lib/companyColors';
+"use client";
+
+import { useState, useEffect } from 'react';
+
+interface Photon {
+  id: number;
+  content: string;
+  author: string;
+  type: string;
+  likes: number;
+  time: string;
+  company: string;
+  author_name?: string;
+  author_company?: string;
+  author_profession?: string;
+  isFromDB?: boolean;
+}
 
 interface PhotonListProps {
   photons: Photon[];
   isLoading: boolean;
   onRefresh: () => void;
   onLike: (id: number) => void;
+  templates: any[];
+  companyColors: Record<string, string>;
 }
 
-export default function PhotonList({ photons, isLoading, onRefresh, onLike }: PhotonListProps) {
+export default function PhotonList({ 
+  photons, 
+  isLoading, 
+  onRefresh, 
+  onLike, 
+  templates,
+  companyColors 
+}: PhotonListProps) {
+  // 添加搜索状态 - 这是唯一的修改点
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredPhotons, setFilteredPhotons] = useState<Photon[]>(photons);
+
+  // 当搜索词或光子列表变化时，更新过滤后的列表
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = photons.filter(photon =>
+        photon.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        photon.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        photon.company.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredPhotons(filtered);
+    } else {
+      setFilteredPhotons(photons);
+    }
+  }, [searchQuery, photons]);
+
+  if (isLoading) {
+    return (
+      <div className="text-center py-12">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <p className="mt-4 text-gray-400">加载光子中...</p>
+      </div>
+    );
+  }
+
+  // 显示的光子数量
+  const displayPhotons = searchQuery ? filteredPhotons : photons;
+  const displayCount = searchQuery ? filteredPhotons.length : photons.length;
+
   return (
     <div className="mb-16">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold flex items-center">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold flex items-center mb-4 md:mb-0">
           <span className="mr-3 text-yellow-400">🌟</span> 最新光子流
           <span className="ml-4 text-sm font-normal text-gray-400">
-            {isLoading ? '加载中...' : `(共 ${photons.length} 条)`}
+            {`(共 ${displayCount} 条)`}
+            {searchQuery && ` (搜索到 ${filteredPhotons.length} 条)`}
           </span>
         </h2>
-        <div className="flex space-x-2">
+        
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+          {/* 搜索框 - 新增部分 */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="🔍 搜索光子内容、作者或公司..."
+              className="w-full md:w-64 bg-black/40 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          
           <button 
             onClick={onRefresh}
-            className="px-3 py-1 bg-gray-800/50 rounded-lg text-sm hover:bg-gray-700/50 transition"
+            className="px-4 py-2 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition"
           >
             🔄 刷新
           </button>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <p className="mt-4 text-gray-400">加载光子中...</p>
-        </div>
-      ) : photons.length === 0 ? (
+      {displayPhotons.length === 0 ? (
         <div className="text-center py-12 bg-gray-900/30 rounded-2xl">
-          <div className="text-4xl mb-4">🌌</div>
-          <h3 className="text-xl font-bold mb-2">暂无光子</h3>
-          <p className="text-gray-400 mb-6">成为第一个分享行业声音的人吧！</p>
-          <button 
-            onClick={() => document.querySelector('textarea')?.focus()}
-            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:opacity-90 transition"
-          >
-            ✨ 发射第一个光子
-          </button>
+          {searchQuery ? (
+            <>
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="text-xl font-bold mb-2">未找到匹配的光子</h3>
+              <p className="text-gray-400 mb-6">换个关键词试试，或发布新的光子</p>
+              <button 
+                onClick={() => setSearchQuery("")}
+                className="px-4 py-2 bg-gray-800/50 rounded-lg hover:bg-gray-700/50 transition mr-2"
+              >
+                清空搜索
+              </button>
+              <button 
+                onClick={() => document.querySelector('textarea')?.focus()}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:opacity-90 transition"
+              >
+                ✨ 发射光子
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="text-4xl mb-4">🌌</div>
+              <h3 className="text-xl font-bold mb-2">暂无光子</h3>
+              <p className="text-gray-400 mb-6">成为第一个分享行业声音的人吧！</p>
+              <button 
+                onClick={() => document.querySelector('textarea')?.focus()}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:opacity-90 transition"
+              >
+                ✨ 发射第一个光子
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
-          {photons.map((photon) => {
-            const template = PHOTON_TEMPLATES.find(t => t.id === photon.type);
-            const companyColor = getCompanyColor(photon.company);
+          {displayPhotons.map((photon) => {
+            const template = templates.find(t => t.id === photon.type);
+            const companyColor = companyColors[photon.company] || companyColors["其他"];
             
             return (
               <div 

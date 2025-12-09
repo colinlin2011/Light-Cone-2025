@@ -40,7 +40,7 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>(null);
+  const animationFrameId = useRef<number | null>(null);
   
   // 默认光子数据（如果未提供）
   const defaultPhotonData: PhotonData[] = [
@@ -205,7 +205,7 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
         }
       });
       
-      animationRef.current = requestAnimationFrame(animate);
+      animationFrameId.current = requestAnimationFrame(animate);
     };
 
     animate();
@@ -221,8 +221,8 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
     window.addEventListener('resize', handleResize);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+      if (animationFrameId.current) {
+        cancelAnimationFrame(animationFrameId.current);
       }
       window.removeEventListener('resize', handleResize);
     };

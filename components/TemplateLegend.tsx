@@ -13,7 +13,7 @@ interface Template {
 }
 
 interface TemplateLegendProps {
-  templates: Template[];
+  templates: readonly Template[];
   activeTemplate: string | null;
   onTemplateClick: (templateId: string | null) => void;
 }

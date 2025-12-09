@@ -1,4 +1,4 @@
-// app/page-new.tsx - 修复版
+// app/page-new.tsx - 修复版（使用你现有的组件）
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -11,8 +11,7 @@ import ViewSelector from '@/components/ViewSelector';
 import PhotonList from '@/components/PhotonList';
 import CompanyView from '@/components/CompanyView';
 import TemplateLegend from '@/components/TemplateLegend';
-import PhotonDetailModal from '@/components/PhotonDetailModal';
-import DatabaseStatus from '@/components/DatabaseStatus';
+import DatabaseStatus from '@/components/DatabaseStatus'; // 使用你现有的组件
 
 type ViewMode = 'starfield' | 'list' | 'company';
 
@@ -30,6 +29,92 @@ interface Photon {
   isFromDB?: boolean;
   color?: string;
   year?: number;
+}
+
+// 光子详情模态框组件（定义在文件内部，因为你可能没有这个独立组件）
+function PhotonDetailModal({ photon, onClose, onLike, companyColors }: any) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* 背景遮罩 */}
+      <div 
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      {/* 卡片内容 */}
+      <div className="relative bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl">
+        {/* 关闭按钮 */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition"
+        >
+          ✕
+        </button>
+        
+        {/* 光子标识 */}
+        <div className="flex items-center gap-3 mb-6">
+          <div 
+            className="w-10 h-10 rounded-full relative flex items-center justify-center"
+            style={{ 
+              background: `radial-gradient(circle at 30% 30%, white, ${photon.color})`,
+              boxShadow: `0 0 30px ${photon.color}80`
+            }}
+          >
+            <div 
+              className="absolute -inset-2 rounded-full border-2"
+              style={{ borderColor: companyColors[photon.company] || '#6b7280' }}
+            ></div>
+            <span className="text-white text-lg">✨</span>
+          </div>
+          <div>
+            <span className="text-sm font-medium text-gray-400">{photon.type}</span>
+            <div className="text-xs text-gray-500 flex items-center gap-2">
+              <span>🏢</span>
+              <span>{photon.company}</span>
+            </div>
+          </div>
+        </div>
+        
+        {/* 内容 */}
+        <div className="mb-8">
+          <p className="text-xl text-white leading-relaxed italic">"{photon.content}"</p>
+        </div>
+        
+        {/* 作者信息 */}
+        <div className="mb-8 p-4 bg-gradient-to-r from-white/5 to-transparent rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+              <span className="text-white">👤</span>
+            </div>
+            <div className="flex-1">
+              <div className="text-sm text-white">{photon.author}</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {photon.year || '未知年份'} · {photon.likes} 共鸣
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* 互动按钮 */}
+        <div className="flex gap-3">
+          <button
+            onClick={() => onLike(photon.id)}
+            className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-semibold text-white flex items-center justify-center gap-3 hover:scale-[1.02] transition-all"
+          >
+            <span className="text-xl">💫</span>
+            <span>共鸣 ({photon.likes})</span>
+          </button>
+          
+          <button className="px-6 py-4 border border-white/20 rounded-xl hover:bg-white/10 transition-all">
+            <div className="flex items-center gap-2">
+              <span>🔗</span>
+              <span className="text-sm">分享</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function HomePage() {
@@ -200,7 +285,7 @@ export default function HomePage() {
 
           {/* 右侧控制区 */}
           <div className="flex flex-col items-end gap-4">
-            {/* 数据库状态 */}
+            {/* 数据库状态 - 使用你现有的组件 */}
             <DatabaseStatus 
               status={dbStatus} 
               photonCount={photons.length}
@@ -375,7 +460,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 光子详情模态框 */}
+      {/* 光子详情模态框 - 使用内联组件 */}
       {selectedPhoton && (
         <PhotonDetailModal
           photon={selectedPhoton}
@@ -385,7 +470,7 @@ export default function HomePage() {
         />
       )}
 
-      {/* 添加光子模态框 */}
+      {/* 添加光子模态框 - 使用你现有的组件 */}
       {isAddModalOpen && (
         <AddPhotonModal 
           onClose={() => setIsAddModalOpen(false)}

@@ -145,14 +145,14 @@ export default function Home() {
   };
 
   // 点赞光子（暂时只前端）
-  const handleLikePhoton = async (photonId: number) => {
-    const updatedPhotons = photons.map(photon => 
-      photon.id === photonId 
-        ? { ...photon, likes: photon.likes + 1 }
-        : photon
-    );
-    setPhotons(updatedPhotons);
-  };
+const handleLikePhoton = async (photonId: number | string) => {
+  const updatedPhotons = photons.map(photon => 
+    photon.id === photonId 
+      ? { ...photon, likes: photon.likes + 1 }
+      : photon
+  );
+  setPhotons(updatedPhotons);
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-4 md:p-8">

@@ -14,7 +14,7 @@ import { DbStatus } from "@/lib/types";
 import { formatPhotonFromDB, getInitialPhotons } from "@/utils/photonUtils";
 
 export default function Home() {
-  // 状态管理
+  // 状态的管理
   const [selectedTemplate, setSelectedTemplate] = useState<PhotonTemplate>(PHOTON_TEMPLATES[0]);
   const [photonContent, setPhotonContent] = useState("");
   const [authorName, setAuthorName] = useState("");

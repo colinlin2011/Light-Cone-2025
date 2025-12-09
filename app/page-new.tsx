@@ -265,7 +265,7 @@ export default function HomePage() {
             loadPhotons();
             setIsAddModalOpen(false);
           }}
-          templates={PHOTON_TEMPLATES}
+          templates={[...PHOTON_TEMPLATES]}
           companyColors={COMPANY_COLORS}
         />
       )}

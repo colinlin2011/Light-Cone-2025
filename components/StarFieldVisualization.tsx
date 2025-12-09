@@ -46,41 +46,49 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
   const defaultPhotonData: PhotonData[] = [
     {
       id: 1,
-      year: 2015,
-      x: 15,
-      y: 25,
-      size: 25,
-      theme: '历史回顾',
-      color: '#6b7280',
-      title: '特斯拉Autopilot首次发布',
-      character: 'Elon Musk',
-      company: 'Tesla',
-      description: '特斯拉推出第一代Autopilot系统，开启了商用自动驾驶的新纪元',
-      resonance: 156
+      year: 2024,
+      x: 50,
+      y: 40,
+      size: 30,
+      theme: 'moment',
+      color: '#3b82f6',
+      title: '欢迎来到光锥计划',
+      character: '系统',
+      company: '光锥计划',
+      description: '这是一个记录自动驾驶行业声音的平台',
+      resonance: 1
     },
-    // ... 可以添加更多默认数据
+    {
+      id: 2,
+      year: 2023,
+      x: 30,
+      y: 60,
+      size: 25,
+      theme: 'prophecy',
+      color: '#8b5cf6',
+      title: '2023年行业突破',
+      character: '行业观察者',
+      company: '行业',
+      description: '端到端大模型开始应用于自动驾驶系统',
+      resonance: 5
+    },
+    {
+      id: 3,
+      year: 2025,
+      x: 70,
+      y: 30,
+      size: 35,
+      theme: 'inspiration',
+      color: '#06b6d4',
+      title: '未来的自动驾驶',
+      character: '梦想家',
+      company: '未来',
+      description: '畅想L4级别自动驾驶普及后的生活',
+      resonance: 10
+    }
   ];
 
   const displayPhotons = photons.length > 0 ? photons : defaultPhotonData;
-
-  // 主题颜色映射
-  const themeColors: Record<string, string> = {
-    '至暗时刻': '#ef4444',
-    '高光瞬间': '#eab308',
-    '路线之争': '#a855f7',
-    '预言胶囊': '#06b6d4',
-    '我在现场': '#22c55e',
-    '灵光闪现': '#f97316',
-    '此刻心情': '#ec4899',
-    '历史回顾': '#6b7280',
-    'moment': '#3b82f6',      // 那个瞬间 - 蓝色
-    'prophecy': '#8b5cf6',    // 预言胶囊 - 紫色
-    'culture': '#f59e0b',     // 行业黑话 - 橙色
-    'onsite': '#10b981',      // 我在现场 - 绿色
-    'inspiration': '#06b6d4', // 灵光闪现 - 青色
-    'history': '#f97316',     // 历史回顾 - 橙色
-    'darkmoment': '#ef4444',  // 至暗时刻 - 红色
-  };
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -153,7 +161,7 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
         }
       });
 
-      // 绘制光子（简化版）
+      // 绘制光子
       displayPhotons.forEach(photon => {
         const x = (photon.x / 100) * width;
         const y = (photon.y / 100) * height;
@@ -186,6 +194,15 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
         ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff40';
         ctx.fill();
+        
+        // 绘制共振数（如果较大）
+        if (photon.resonance > 5) {
+          ctx.beginPath();
+          ctx.arc(x, y, size * 1.5, 0, Math.PI * 2);
+          ctx.strokeStyle = photon.color + '30';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
       });
       
       animationRef.current = requestAnimationFrame(animate);
@@ -220,16 +237,24 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // 简单检测点击了哪个光子
+    // 检测点击了哪个光子
+    let clickedPhoton: PhotonData | null = null;
+    let minDistance = Infinity;
+
     displayPhotons.forEach(photon => {
       const photonX = (photon.x / 100) * canvas.width;
       const photonY = (photon.y / 100) * canvas.height;
       const distance = Math.sqrt((x - photonX) ** 2 + (y - photonY) ** 2);
       
-      if (distance < photon.size * 2) {
-        onPhotonClick(photon);
+      if (distance < photon.size * 2 && distance < minDistance) {
+        minDistance = distance;
+        clickedPhoton = photon;
       }
     });
+    
+    if (clickedPhoton) {
+      onPhotonClick(clickedPhoton);
+    }
   };
 
   return (
@@ -249,7 +274,32 @@ const StarFieldVisualization: React.FC<StarFieldVisualizationProps> = ({
       <div className="absolute bottom-6 left-6 text-white">
         <div className="bg-black/60 backdrop-blur-lg rounded-xl p-4 border border-blue-500/30">
           <div className="text-sm text-gray-300 mb-2">✨ 星空可视化模式</div>
-          <div className="text-xs text-gray-400">点击光子查看详情 • 拖动浏览</div>
+          <div className="text-xs text-gray-400">点击光子查看详情</div>
+        </div>
+      </div>
+      
+      {/* 图例 */}
+      <div className="absolute top-6 left-6">
+        <div className="bg-black/60 backdrop-blur-lg rounded-xl p-4 border border-blue-500/30 max-w-xs">
+          <div className="text-sm font-medium text-gray-300 mb-3">🎨 颜色图例</div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+              <span className="text-gray-400">那个瞬间</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+              <span className="text-gray-400">预言胶囊</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-green-500"></div>
+              <span className="text-gray-400">我在现场</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-red-500"></div>
+              <span className="text-gray-400">至暗时刻</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

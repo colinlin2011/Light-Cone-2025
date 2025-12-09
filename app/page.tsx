@@ -1,110 +1,20 @@
+// app/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from '@supabase/supabase-js';
-
-// ============ 你的Supabase配置（新加坡） ============
-// 使用你提供的JWT格式anon key
-const SUPABASE_URL = "https://xqkatvrwddkyowikjdtg.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhxa2F0dnJ3ZGRreW93aWtqZHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUwMzQ0OTQsImV4cCI6MjA4MDYxMDQ5NH0.VdJwt3R2FCglq0RfZ1hIRYuCQnQbLi0l-9JDw-7giJ0";
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ============ 光子模板定义 ============
-const PHOTON_TEMPLATES = [
-  {
-    id: "moment",
-    name: "那个瞬间",
-    color: "bg-blue-500/20",
-    borderColor: "border-blue-500/30",
-    textColor: "text-blue-300",
-    icon: "🔵",
-    prompt: "哪一刻让你觉得L4真的要来了，或者觉得L4遥遥无期？",
-    example: "2025年冬，看着测试车在暴雪中无接管跑完了50公里，我第一次觉得不需要高精地图也行。",
-    description: "记录行业关键突破或顿悟时刻"
-  },
-  {
-    id: "prophecy", 
-    name: "预言胶囊",
-    color: "bg-purple-500/20",
-    borderColor: "border-purple-500/30",
-    textColor: "text-purple-300",
-    icon: "🟣",
-    prompt: "写给5年后的行业，或者5年后的自己。",
-    example: "立贴为证，2028年之前，纯视觉方案解决不了所有的Corner Case。",
-    description: "写给未来行业或自己的预言"
-  },
-  {
-    id: "culture",
-    name: "行业黑话",
-    color: "bg-amber-500/20", 
-    borderColor: "border-amber-500/30",
-    textColor: "text-amber-300",
-    icon: "🟡",
-    prompt: "只有圈内人才懂的痛。",
-    example: "又在这个路口接管了，感知和规控又要打架了。",
-    description: "只有圈内人才懂的痛与梗"
-  },
-  {
-    id: "onsite",
-    name: "我在现场",
-    color: "bg-green-500/20",
-    borderColor: "border-green-500/30",
-    textColor: "text-green-300",
-    icon: "🟢",
-    prompt: "分享你亲身经历的行业重要时刻",
-    example: "2024年3月，在测试场亲眼看到无图方案首次突破1000公里无接管。",
-    description: "亲身经历的行业重要时刻"
-  },
-  {
-    id: "inspiration",
-    name: "灵光闪现",
-    color: "bg-cyan-500/20",
-    borderColor: "border-cyan-500/30", 
-    textColor: "text-cyan-300",
-    icon: "💡",
-    prompt: "那些突然的、改变思路的灵感时刻",
-    example: "凌晨调试代码时突然想到用Transformer重构整个规控模块。",
-    description: "改变思路的灵感时刻"
-  },
-  {
-    id: "history",
-    name: "历史回顾", 
-    color: "bg-orange-500/20",
-    borderColor: "border-orange-500/30",
-    textColor: "text-orange-300",
-    icon: "📜",
-    prompt: "回顾自动驾驶发展史上的重要节点",
-    example: "2016年，第一次看到特斯拉Autopilot在国内开放，就知道这行业要变天了。",
-    description: "回顾行业发展重要节点"
-  },
-  {
-    id: "darkmoment",
-    name: "至暗时刻",
-    color: "bg-red-500/20",
-    borderColor: "border-red-500/30",
-    textColor: "text-red-300",
-    icon: "⚫",
-    prompt: "分享那些困难、挫折但最终成长的时刻",
-    example: "项目延期半年，团队走了一半人，在停车场抽烟时怀疑这一切是否值得。",
-    description: "困难挫折但最终成长的时刻"
-  }
-];
-
-// 公司颜色映射
-const COMPANY_COLORS: Record<string, string> = {
-  "华为": "border-red-500/30",
-  "蔚来": "border-blue-500/30", 
-  "小鹏": "border-green-500/30",
-  "卓驭": "border-orange-500/30",
-  "特斯拉": "border-gray-500/30",
-  "百度": "border-blue-400/30",
-  "理想": "border-purple-400/30",
-  "其他": "border-gray-700/30"
-};
+import StarBackground from "@/components/StarBackground";
+import DatabaseStatus from "@/components/DatabaseStatus";
+import TemplateSelector from "@/components/TemplateSelector";
+import PhotonForm from "@/components/PhotonForm";
+import PhotonList from "@/components/PhotonList";
+import { supabase } from "@/lib/supabase";
+import { PHOTON_TEMPLATES, PhotonTemplate } from "@/lib/templates";
+import { DbStatus } from "@/lib/types";
+import { formatPhotonFromDB, getInitialPhotons } from "@/utils/photonUtils";
 
 export default function Home() {
   // 状态管理
-  const [selectedTemplate, setSelectedTemplate] = useState(PHOTON_TEMPLATES[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState<PhotonTemplate>(PHOTON_TEMPLATES[0]);
   const [photonContent, setPhotonContent] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [authorCompany, setAuthorCompany] = useState("");
@@ -113,7 +23,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [dbStatus, setDbStatus] = useState<"checking" | "connected" | "error">("checking");
+  const [dbStatus, setDbStatus] = useState<DbStatus>("checking");
 
   // 加载光子数据
   useEffect(() => {
@@ -125,7 +35,7 @@ export default function Home() {
     setDbStatus("checking");
     
     try {
-      console.log("正在连接Supabase...", SUPABASE_URL);
+      console.log("正在连接Supabase...");
       
       // 先测试连接
       const { data: testData, error: testError } = await supabase
@@ -154,20 +64,7 @@ export default function Home() {
         setPhotons(getInitialPhotons());
       } else if (data && data.length > 0) {
         // 转换数据库数据
-        const formattedPhotons = data.map((photon: any) => ({
-          id: photon.id,
-          content: photon.content,
-          author: `${photon.author_name || '匿名用户'}${photon.author_profession ? ` · ${photon.author_profession}` : ''}${photon.author_company ? ` @ ${photon.author_company}` : ''}`,
-          type: photon.template_type || 'moment',
-          likes: photon.likes_count || 0,
-          time: new Date(photon.created_at).toLocaleDateString('zh-CN'),
-          company: photon.author_company || '其他',
-          author_name: photon.author_name,
-          author_company: photon.author_company,
-          author_profession: photon.author_profession,
-          created_at: photon.created_at,
-          isFromDB: true
-        }));
+        const formattedPhotons = data.map((photon: any) => formatPhotonFromDB(photon));
         
         setPhotons(formattedPhotons);
         console.log("从数据库加载了", formattedPhotons.length, "个光子");
@@ -184,32 +81,8 @@ export default function Home() {
     }
   };
 
-  // 初始光子数据（备用）
-  const getInitialPhotons = () => [
-    {
-      id: 1,
-      content: "2024年，第一次看到端到端大模型在车上运行，我知道游戏规则要变了。",
-      author: "感知算法工程师 @ 华为",
-      type: "moment",
-      likes: 42,
-      time: "2024-03-15",
-      company: "华为",
-      isFromDB: false
-    },
-    {
-      id: 2, 
-      content: "预言：2027年之前，L4会在特定场景落地，但通用L4仍需10年。",
-      author: "系统架构师 @ 蔚来",
-      type: "prophecy",
-      likes: 28,
-      time: "2024-03-14",
-      company: "蔚来",
-      isFromDB: false
-    }
-  ];
-
   // 选择模板
-  const handleTemplateSelect = (template: typeof PHOTON_TEMPLATES[0]) => {
+  const handleTemplateSelect = (template: PhotonTemplate) => {
     setSelectedTemplate(template);
     if (!photonContent.trim()) {
       setPhotonContent(template.example);
@@ -270,9 +143,8 @@ export default function Home() {
     }
   };
 
-  // 点赞光子
+  // 点赞光子（暂时只前端）
   const handleLikePhoton = async (photonId: number) => {
-    // 这里先实现前端效果
     const updatedPhotons = photons.map(photon => 
       photon.id === photonId 
         ? { ...photon, likes: photon.likes + 1 }
@@ -281,37 +153,10 @@ export default function Home() {
     setPhotons(updatedPhotons);
   };
 
-  // 数据库状态显示
-  const renderDbStatus = () => {
-    switch (dbStatus) {
-      case "checking":
-        return <span className="text-yellow-400">🔄 检查数据库连接...</span>;
-      case "connected":
-        return <span className="text-green-400">✅ 数据库已连接 | 当前光子数: {photons.filter(p => p.isFromDB).length}</span>;
-      case "error":
-        return <span className="text-red-400">❌ 数据库连接失败 | 使用演示模式</span>;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white p-4 md:p-8">
-      {/* 星空背景 */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent"></div>
-        {[...Array(50)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              opacity: Math.random() * 0.7 + 0.3
-            }}
-          ></div>
-        ))}
-      </div>
-
+      <StarBackground />
+      
       {/* 主要内容 */}
       <div className="relative z-10 max-w-6xl mx-auto">
         {/* 头部 */}
@@ -329,15 +174,10 @@ export default function Home() {
           </p>
           
           {/* 数据库状态 */}
-          <div className={`p-3 rounded-lg mb-4 ${
-            dbStatus === "connected" ? "bg-green-500/20 border border-green-500/30" :
-            dbStatus === "error" ? "bg-red-500/20 border border-red-500/30" :
-            "bg-yellow-500/20 border border-yellow-500/30"
-          }`}>
-            <div className="flex items-center justify-center">
-              {renderDbStatus()}
-            </div>
-          </div>
+          <DatabaseStatus 
+            status={dbStatus} 
+            photonCount={photons.filter(p => p.isFromDB).length} 
+          />
           
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             <button 
@@ -365,240 +205,35 @@ export default function Home() {
           </h3>
           
           {/* 模板选择 */}
-          <div className="mb-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-4">
-              {PHOTON_TEMPLATES.map((template) => (
-                <button
-                  key={template.id}
-                  onClick={() => handleTemplateSelect(template)}
-                  className={`p-3 rounded-xl border transition-all ${selectedTemplate.id === template.id ? `${template.borderColor} ${template.color} scale-105` : 'border-gray-700/50 hover:border-gray-600'}`}
-                >
-                  <div className="text-center">
-                    <div className="text-2xl mb-1">{template.icon}</div>
-                    <div className={`text-xs font-medium ${selectedTemplate.id === template.id ? template.textColor : 'text-gray-400'}`}>
-                      {template.name}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-            
-            {/* 模板说明 */}
-            {selectedTemplate && (
-              <div className={`p-4 rounded-lg ${selectedTemplate.color} border ${selectedTemplate.borderColor}`}>
-                <div className="flex items-start mb-2">
-                  <span className="text-lg mr-2">{selectedTemplate.icon}</span>
-                  <div>
-                    <h4 className="font-bold mb-1">{selectedTemplate.name}</h4>
-                    <p className="text-sm opacity-90">{selectedTemplate.description}</p>
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <p className="text-sm font-medium mb-1">📝 引导语：</p>
-                  <p className="text-sm mb-2">{selectedTemplate.prompt}</p>
-                  <p className="text-sm font-medium mb-1">💡 示例：</p>
-                  <p className="text-sm text-gray-300 italic">{selectedTemplate.example}</p>
-                </div>
-              </div>
-            )}
-          </div>
+          <TemplateSelector 
+            selectedTemplate={selectedTemplate} 
+            onSelect={handleTemplateSelect} 
+          />
           
-          {/* 内容输入 */}
-          <div className="mb-6">
-            <textarea 
-              value={photonContent}
-              onChange={(e) => setPhotonContent(e.target.value)}
-              className="w-full h-48 bg-black/40 border border-gray-700 rounded-xl p-4 text-white placeholder-gray-500 focus:outline-none focus:border-blue-500/50 transition"
-              placeholder={`${selectedTemplate.prompt}\n\n可以参考示例格式，但请用你自己的真实经历...`}
-              disabled={isSubmitting}
-            />
-            <div className="flex justify-between items-center mt-2">
-              <div className="text-gray-500 text-sm">
-                正在使用 <span className={selectedTemplate.textColor}>{selectedTemplate.name}</span> 模板
-              </div>
-              <div className="text-gray-500 text-sm">
-                {photonContent.length}/500
-              </div>
-            </div>
-          </div>
-
-          {/* 作者信息 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-gray-400 text-sm mb-2">👤 称呼/昵称</label>
-              <input
-                type="text"
-                value={authorName}
-                onChange={(e) => setAuthorName(e.target.value)}
-                className="w-full bg-black/40 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500/50 transition"
-                placeholder="匿名同行"
-                disabled={isSubmitting}
-              />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-sm mb-2">🏢 公司（可选）</label>
-              <input
-                type="text"
-                value={authorCompany}
-                onChange={(e) => setAuthorCompany(e.target.value)}
-                className="w-full bg-black/40 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500/50 transition"
-                placeholder="如：华为、蔚来..."
-                disabled={isSubmitting}
-              />
-            </div>
-            <div>
-              <label className="block text-gray-400 text-sm mb-2">💼 职业（可选）</label>
-              <input
-                type="text"
-                value={authorProfession}
-                onChange={(e) => setAuthorProfession(e.target.value)}
-                className="w-full bg-black/40 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500/50 transition"
-                placeholder="如：感知算法工程师"
-                disabled={isSubmitting}
-              />
-            </div>
-          </div>
-          
-          {/* 公司选择快捷按钮 */}
-          <div className="mb-6">
-            <p className="text-gray-400 mb-3 text-sm">🏢 快速选择公司（点击填充）</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.keys(COMPANY_COLORS).map((company) => (
-                <button
-                  key={company}
-                  onClick={() => setAuthorCompany(company)}
-                  className={`px-3 py-1.5 rounded-lg text-sm border ${COMPANY_COLORS[company]} ${
-                    authorCompany === company ? 'bg-gray-800' : 'bg-gray-900/50'
-                  } hover:opacity-80 transition`}
-                  disabled={isSubmitting}
-                >
-                  {company}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* 提交按钮 */}
-          <div className="flex justify-between items-center pt-4 border-t border-gray-800/50">
-            <div className="text-gray-500 text-sm">
-              {submitSuccess ? (
-                <span className="text-green-400">✅ 光子已成功发射！正在更新列表...</span>
-              ) : (
-                "✨ 每个光子都将成为行业历史的一部分"
-              )}
-            </div>
-            <button 
-              onClick={handleSubmit}
-              disabled={isSubmitting || !photonContent.trim()}
-              className={`px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold transition-all shadow-lg shadow-blue-500/20 ${
-                isSubmitting || !photonContent.trim()
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:opacity-90 hover:scale-105'
-              }`}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  发射中...
-                </span>
-              ) : '🚀 发射光子'}
-            </button>
-          </div>
+          {/* 内容输入和作者信息 */}
+          <PhotonForm
+            selectedTemplate={selectedTemplate}
+            photonContent={photonContent}
+            setPhotonContent={setPhotonContent}
+            authorName={authorName}
+            setAuthorName={setAuthorName}
+            authorCompany={authorCompany}
+            setAuthorCompany={setAuthorCompany}
+            authorProfession={authorProfession}
+            setAuthorProfession={setAuthorProfession}
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+            submitSuccess={submitSuccess}
+          />
         </div>
 
         {/* 光子展示区 */}
-        <div className="mb-16">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold flex items-center">
-              <span className="mr-3 text-yellow-400">🌟</span> 最新光子流
-              <span className="ml-4 text-sm font-normal text-gray-400">
-                {isLoading ? '加载中...' : `(共 ${photons.length} 条)`}
-              </span>
-            </h2>
-            <div className="flex space-x-2">
-              <button 
-                onClick={loadPhotons}
-                className="px-3 py-1 bg-gray-800/50 rounded-lg text-sm hover:bg-gray-700/50 transition"
-              >
-                🔄 刷新
-              </button>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              <p className="mt-4 text-gray-400">加载光子中...</p>
-            </div>
-          ) : photons.length === 0 ? (
-            <div className="text-center py-12 bg-gray-900/30 rounded-2xl">
-              <div className="text-4xl mb-4">🌌</div>
-              <h3 className="text-xl font-bold mb-2">暂无光子</h3>
-              <p className="text-gray-400 mb-6">成为第一个分享行业声音的人吧！</p>
-              <button 
-                onClick={() => document.querySelector('textarea')?.focus()}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:opacity-90 transition"
-              >
-                ✨ 发射第一个光子
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {photons.map((photon) => {
-                const template = PHOTON_TEMPLATES.find(t => t.id === photon.type);
-                const companyColor = COMPANY_COLORS[photon.company] || COMPANY_COLORS["其他"];
-                
-                return (
-                  <div 
-                    key={photon.id}
-                    className={`bg-gray-900/60 backdrop-blur-lg rounded-2xl p-6 border ${companyColor} hover:border-blue-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10`}
-                  >
-                    <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-4">
-                      <div className="flex flex-wrap items-center gap-2 mb-3 md:mb-0">
-                        {template && (
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${template.color} ${template.textColor}`}>
-                            {template.icon} {template.name}
-                          </span>
-                        )}
-                        {photon.isFromDB && (
-                          <span className="px-2 py-1 rounded-full text-xs bg-green-500/20 text-green-300">
-                            ✅ 已保存
-                          </span>
-                        )}
-                        <span className="px-3 py-1 rounded-full text-sm bg-gray-800/50">
-                          {photon.company}
-                        </span>
-                        <span className="text-gray-400 text-sm">{photon.time}</span>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <button 
-                          onClick={() => handleLikePhoton(photon.id)}
-                          className="flex items-center text-gray-400 hover:text-red-400 transition group"
-                        >
-                          <span className="text-xl group-hover:scale-110 transition">❤️</span>
-                          <span className="ml-2 font-medium">{photon.likes}</span>
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <p className="text-lg md:text-xl mb-5 leading-relaxed">{photon.content}</p>
-                    
-                    <div className="flex justify-between items-center pt-4 border-t border-gray-800/50">
-                      <span className="text-gray-300">{photon.author}</span>
-                      <div className="text-gray-500 text-sm">
-                        #{photon.type} #{photon.company.replace(/\s+/g, '')}
-                        {photon.isFromDB && ' #已保存'}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <PhotonList 
+          photons={photons} 
+          isLoading={isLoading} 
+          onRefresh={loadPhotons} 
+          onLike={handleLikePhoton} 
+        />
 
         {/* 底部信息 */}
         <footer className="pt-8 border-t border-gray-800 text-center">

@@ -1,3 +1,4 @@
+// components/StarCanvas.tsx - 完整修复版
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
@@ -14,6 +15,8 @@ interface StarPhoton {
   content: string;
   author: string;
   likes: number;
+  color: string;
+  companyColor: string;
 }
 
 interface StarCanvasProps {
@@ -35,7 +38,7 @@ const TYPE_COLORS: Record<string, string> = {
   darkmoment: '#ef4444',  // 红色
 };
 
-// 公司颜色映射（与之前一致）
+// 公司颜色映射
 const COMPANY_COLORS: Record<string, string> = {
   "华为": "#ef4444",
   "蔚来": "#3b82f6",
@@ -65,37 +68,67 @@ export default function StarCanvas({
   
   const [hoveredPhoton, setHoveredPhoton] = useState<StarPhoton | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [backgroundStars, setBackgroundStars] = useState<any[]>([]);
+
+  // 初始化背景星星
+  useEffect(() => {
+    const initBackgroundStars = () => {
+      const stars = [];
+      for (let i = 0; i < 150; i++) {
+        stars.push({
+          x: Math.random() * 100,
+          y: Math.random() * 100,
+          size: Math.random() * 1.5 + 0.5,
+          opacity: Math.random() * 0.4 + 0.1,
+          speed: Math.random() * 0.05 + 0.01,
+          twinkleSpeed: Math.random() * 0.02 + 0.005,
+          twinkleOffset: Math.random() * Math.PI * 2
+        });
+      }
+      return stars;
+    };
+    
+    setBackgroundStars(initBackgroundStars());
+  }, []);
 
   // 过滤和计算光子位置
   const getFilteredPhotons = () => {
-    return photons
+    const filtered = photons
       .filter(photon => photon.year >= timeRange.start && photon.year <= timeRange.end)
       .filter(photon => !activeCompany || photon.company === activeCompany)
-      .filter(photon => !activeTemplate || photon.type === activeTemplate)
-      .map(photon => {
-        // 根据年份计算x位置
-        const yearProgress = (photon.year - timeRange.start) / (timeRange.end - timeRange.start);
-        const x = yearProgress * 80 + 10; // 10%到90%的范围
-        
-        // 根据公司和类型计算y位置
-        const companies = [...new Set(photons.map(p => p.company))];
-        const companyIndex = companies.indexOf(photon.company);
-        const y = (companyIndex / companies.length) * 70 + 15;
-        
-        // 增加随机偏移避免完全重叠
-        const randomOffset = {
-          x: (Math.random() - 0.5) * 5,
-          y: (Math.random() - 0.5) * 5
-        };
-        
-        return {
-          ...photon,
-          x: x + randomOffset.x,
-          y: y + randomOffset.y,
-          color: TYPE_COLORS[photon.type] || '#6b7280',
-          companyColor: COMPANY_COLORS[photon.company] || '#6b7280'
-        };
-      });
+      .filter(photon => !activeTemplate || photon.type === activeTemplate);
+
+    // 避免重叠：为每个位置分组
+    const positionMap = new Map<string, StarPhoton[]>();
+    
+    filtered.forEach(photon => {
+      const key = `${Math.round(photon.x)}_${Math.round(photon.y)}`;
+      if (!positionMap.has(key)) {
+        positionMap.set(key, []);
+      }
+      positionMap.get(key)!.push(photon);
+    });
+
+    // 处理重叠的光子
+    const result: StarPhoton[] = [];
+    positionMap.forEach((photonsInSameSpot, key) => {
+      if (photonsInSameSpot.length === 1) {
+        result.push(photonsInSameSpot[0]);
+      } else {
+        // 分散排列
+        photonsInSameSpot.forEach((photon, index) => {
+          const angle = (index / photonsInSameSpot.length) * Math.PI * 2;
+          const radius = 2;
+          result.push({
+            ...photon,
+            x: photon.x + Math.cos(angle) * radius,
+            y: photon.y + Math.sin(angle) * radius
+          });
+        });
+      }
+    });
+
+    return result;
   };
 
   // 动画循环
@@ -109,193 +142,280 @@ export default function StarCanvas({
 
     // 设置画布尺寸
     const updateCanvasSize = () => {
-      canvas.width = container.clientWidth;
-      canvas.height = container.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = container.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
     };
     
     updateCanvasSize();
-    const resizeObserver = new ResizeObserver(updateCanvasSize);
+    const resizeObserver = new ResizeObserver(() => {
+      updateCanvasSize();
+    });
     resizeObserver.observe(container);
 
-    // 创建背景星星
-    const backgroundStars: Array<{
-      x: number;
-      y: number;
-      size: number;
-      opacity: number;
-      speed: number;
-    }> = [];
-    
-    for (let i = 0; i < 200; i++) {
-      backgroundStars.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        size: Math.random() * 2 + 0.5,
-        opacity: Math.random() * 0.7 + 0.3,
-        speed: Math.random() * 0.5 + 0.1
-      });
-    }
+    let animationId: number;
+    let lastTime = 0;
 
-    // 动画函数
-    const animate = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const animate = (currentTime: number) => {
+      if (!lastTime) lastTime = currentTime;
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      const width = canvas.width / (window.devicePixelRatio || 1);
+      const height = canvas.height / (window.devicePixelRatio || 1);
+
+      // 清空画布
+      ctx.clearRect(0, 0, width, height);
       
-      // 绘制渐变背景
+      // 绘制深空背景
       const gradient = ctx.createRadialGradient(
-        canvas.width / 2, canvas.height / 2, 0,
-        canvas.width / 2, canvas.height / 2, canvas.width
+        width / 2, height / 2, 0,
+        width / 2, height / 2, Math.max(width, height) / 2
       );
       gradient.addColorStop(0, '#000810');
-      gradient.addColorStop(0.5, '#0a0a1a');
+      gradient.addColorStop(0.3, '#0a0a1a');
       gradient.addColorStop(1, '#000000');
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, width, height);
       
       // 绘制背景星星
+      const currentTimeSeconds = currentTime / 1000;
       backgroundStars.forEach(star => {
-        star.x -= star.speed;
-        if (star.x < -10) star.x = canvas.width + 10;
+        // 闪烁效果
+        const twinkle = Math.sin(currentTimeSeconds * star.twinkleSpeed + star.twinkleOffset) * 0.3 + 0.7;
         
+        // 转换为实际像素坐标
+        const x = star.x * width / 100;
+        const y = star.y * height / 100;
+        
+        // 轻微移动
+        star.x -= star.speed * deltaTime * 10;
+        if (star.x < -5) {
+          star.x = 105;
+          star.y = Math.random() * 100;
+        }
+        
+        // 绘制星星
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity * 0.3})`;
+        ctx.arc(x, y, star.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity * twinkle * 0.3})`;
         ctx.fill();
         
-        // 添加光晕
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size * 3, 0, Math.PI * 2);
-        const starGlow = ctx.createRadialGradient(
-          star.x, star.y, 0,
-          star.x, star.y, star.size * 3
-        );
-        starGlow.addColorStop(0, `rgba(255, 255, 255, ${star.opacity * 0.1})`);
-        starGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        ctx.fillStyle = starGlow;
-        ctx.fill();
+        // 添加微弱光晕
+        if (star.size > 1) {
+          ctx.beginPath();
+          ctx.arc(x, y, star.size * 2, 0, Math.PI * 2);
+          const glow = ctx.createRadialGradient(x, y, 0, x, y, star.size * 2);
+          glow.addColorStop(0, `rgba(255, 255, 255, ${star.opacity * 0.1})`);
+          glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+          ctx.fillStyle = glow;
+          ctx.fill();
+        }
       });
       
       // 获取当前可见的光子
       const visiblePhotons = getFilteredPhotons();
       
-      // 绘制时间轴
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.lineWidth = 1;
+      // 绘制银河带
       ctx.beginPath();
-      ctx.moveTo(0.1 * canvas.width, 0.9 * canvas.height);
-      ctx.lineTo(0.9 * canvas.width, 0.9 * canvas.height);
+      const galaxyGradient = ctx.createLinearGradient(0, height * 0.3, 0, height * 0.7);
+      galaxyGradient.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
+      galaxyGradient.addColorStop(0.5, 'rgba(139, 92, 246, 0.1)');
+      galaxyGradient.addColorStop(1, 'rgba(59, 130, 246, 0.05)');
+      ctx.fillStyle = galaxyGradient;
+      ctx.fillRect(0, height * 0.3, width, height * 0.4);
+      
+      // 绘制时间轴
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(width * 0.05, height * 0.85);
+      ctx.lineTo(width * 0.95, height * 0.85);
       ctx.stroke();
       
       // 绘制年份标记
       for (let year = timeRange.start; year <= timeRange.end; year += 5) {
-        const x = 0.1 + (0.8 * (year - timeRange.start) / (timeRange.end - timeRange.start));
+        const x = width * (0.05 + 0.9 * (year - timeRange.start) / (timeRange.end - timeRange.start));
         ctx.beginPath();
-        ctx.moveTo(x * canvas.width, 0.9 * canvas.height);
-        ctx.lineTo(x * canvas.width, 0.91 * canvas.height);
+        ctx.moveTo(x, height * 0.85);
+        ctx.lineTo(x, height * 0.87);
         ctx.stroke();
         
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-        ctx.font = '12px sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.font = 'bold 14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(year.toString(), x * canvas.width, 0.93 * canvas.height);
+        ctx.textBaseline = 'top';
+        ctx.fillText(year.toString(), x, height * 0.88);
       }
       
       // 绘制光子
       visiblePhotons.forEach(photon => {
-        const x = (photon.x / 100) * canvas.width;
-        const y = (photon.y / 100) * canvas.height;
-        const size = photon.size * scale;
+        const x = (photon.x / 100) * width;
+        const y = (photon.y / 100) * height;
+        const baseSize = 20;
+        const finalSize = baseSize * scale * (photon.size / 30);
         const isHovered = hoveredPhoton?.id === photon.id;
-        const isActive = isHovered || mousePos.x >= x - size && mousePos.x <= x + size && 
-                                      mousePos.y >= y - size && mousePos.y <= y + size;
+        const isActive = isHovered || (
+          mousePos.x >= x - finalSize * 2 && 
+          mousePos.x <= x + finalSize * 2 && 
+          mousePos.y >= y - finalSize * 2 && 
+          mousePos.y <= y + finalSize * 2
+        );
         
-        // 绘制光晕
-        const glowSize = size * (isActive ? 4 : 2);
-        ctx.beginPath();
-        ctx.arc(x, y, glowSize, 0, Math.PI * 2);
-        const glowGradient = ctx.createRadialGradient(x, y, 0, x, y, glowSize);
-        glowGradient.addColorStop(0, `${photon.color}${isActive ? '80' : '30'}`);
-        glowGradient.addColorStop(1, `${photon.color}00`);
-        ctx.fillStyle = glowGradient;
-        ctx.fill();
-        
-        // 绘制外圈（公司颜色）
-        if (photon.companyColor) {
+        // 绘制外光晕（公司颜色）
+        if (photon.companyColor && isActive) {
+          const outerGlowSize = finalSize * 3;
           ctx.beginPath();
-          ctx.arc(x, y, size * 1.2, 0, Math.PI * 2);
-          ctx.strokeStyle = `${photon.companyColor}${isActive ? '80' : '40'}`;
-          ctx.lineWidth = 2;
-          ctx.stroke();
+          ctx.arc(x, y, outerGlowSize, 0, Math.PI * 2);
+          const outerGlow = ctx.createRadialGradient(x, y, 0, x, y, outerGlowSize);
+          outerGlow.addColorStop(0, `${photon.companyColor}40`);
+          outerGlow.addColorStop(0.5, `${photon.companyColor}20`);
+          outerGlow.addColorStop(1, `${photon.companyColor}00`);
+          ctx.fillStyle = outerGlow;
+          ctx.fill();
         }
+        
+        // 绘制中光晕（类型颜色）
+        const midGlowSize = finalSize * 2;
+        ctx.beginPath();
+        ctx.arc(x, y, midGlowSize, 0, Math.PI * 2);
+        const midGlow = ctx.createRadialGradient(x, y, 0, x, y, midGlowSize);
+        midGlow.addColorStop(0, `${photon.color}${isActive ? '60' : '30'}`);
+        midGlow.addColorStop(1, `${photon.color}00`);
+        ctx.fillStyle = midGlow;
+        ctx.fill();
         
         // 绘制光子主体
         ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.arc(x, y, finalSize, 0, Math.PI * 2);
         const photonGradient = ctx.createRadialGradient(
-          x - size/3, y - size/3, 0,
-          x, y, size
+          x - finalSize/3, y - finalSize/3, 0,
+          x, y, finalSize
         );
-        photonGradient.addColorStop(0, `rgba(255, 255, 255, ${photon.brightness})`);
-        photonGradient.addColorStop(0.5, `${photon.color}${Math.round(photon.brightness * 255).toString(16).padStart(2, '0')}`);
+        photonGradient.addColorStop(0, `rgba(255, 255, 255, ${photon.brightness * 0.8})`);
+        photonGradient.addColorStop(0.7, `${photon.color}${Math.round(photon.brightness * 200).toString(16).padStart(2, '0')}`);
         photonGradient.addColorStop(1, `${photon.color}80`);
         ctx.fillStyle = photonGradient;
         ctx.fill();
         
         // 绘制内发光
         ctx.beginPath();
-        ctx.arc(x, y, size * 0.6, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${photon.brightness * 0.3})`;
+        ctx.arc(x, y, finalSize * 0.6, 0, Math.PI * 2);
+        const innerGlow = ctx.createRadialGradient(x, y, 0, x, y, finalSize * 0.6);
+        innerGlow.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
+        innerGlow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        ctx.fillStyle = innerGlow;
         ctx.fill();
         
-        // 绘制共鸣数（如果有）
+        // 绘制共鸣光环
         if (photon.likes > 0) {
           ctx.beginPath();
-          ctx.arc(x, y, size * 1.5, 0, Math.PI * 2);
-          ctx.strokeStyle = `${photon.color}30`;
+          ctx.arc(x, y, finalSize * 1.8, 0, Math.PI * 2);
+          ctx.strokeStyle = `${photon.color}40`;
           ctx.lineWidth = 1;
+          ctx.setLineDash([5, 5]);
           ctx.stroke();
+          ctx.setLineDash([]);
           
+          // 显示共鸣数
           if (isActive) {
             ctx.fillStyle = '#ffffff';
-            ctx.font = '10px sans-serif';
+            ctx.font = 'bold 12px sans-serif';
             ctx.textAlign = 'center';
-            ctx.fillText(`💫 ${photon.likes}`, x, y - size * 2);
+            ctx.textBaseline = 'bottom';
+            ctx.shadowColor = photon.color;
+            ctx.shadowBlur = 10;
+            ctx.fillText(`💫 ${photon.likes}`, x, y - finalSize * 2.5);
+            ctx.shadowBlur = 0;
           }
         }
         
-        // 如果是悬停状态，显示更多信息
+        // 如果是悬停状态，显示详情卡片
         if (isActive) {
-          ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
-          ctx.fillRect(mousePos.x + 10, mousePos.y + 10, 300, 120);
+          // 卡片背景
+          const cardX = mousePos.x + 20;
+          const cardY = mousePos.y + 20;
+          const cardWidth = 280;
+          const cardHeight = 140;
           
+          // 半透明背景
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+          ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
+          
+          // 边框
+          ctx.strokeStyle = photon.color;
+          ctx.lineWidth = 1;
+          ctx.strokeRect(cardX, cardY, cardWidth, cardHeight);
+          
+          // 内容
           ctx.fillStyle = '#ffffff';
-          ctx.font = '12px sans-serif';
+          ctx.font = '13px sans-serif';
           ctx.textAlign = 'left';
           
+          // 内容文本（限制长度）
+          const maxContentLength = 80;
+          const content = photon.content.length > maxContentLength 
+            ? photon.content.substring(0, maxContentLength) + '...'
+            : photon.content;
+          
+          // 绘制文本
           const lines = [
-            photon.content.length > 60 ? photon.content.substring(0, 60) + '...' : photon.content,
-            `👤 ${photon.author}`,
-            `🏢 ${photon.company}`,
-            `🎯 ${photon.likes} 共鸣`
+            { text: content, y: cardY + 30 },
+            { text: `👤 ${photon.author.split('@')[0]}`, y: cardY + 60 },
+            { text: `🏢 ${photon.company}`, y: cardY + 85 },
+            { text: `💫 ${photon.likes} 共鸣 · 📅 ${photon.year}`, y: cardY + 110 }
           ];
           
-          lines.forEach((line, i) => {
-            ctx.fillText(line, mousePos.x + 20, mousePos.y + 40 + i * 20);
+          lines.forEach(line => {
+            ctx.fillText(line.text, cardX + 15, line.y);
           });
+          
+          // 点击提示
+          ctx.fillStyle = photon.color;
+          ctx.font = '11px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('点击查看详情', cardX + cardWidth/2, cardY + cardHeight - 10);
         }
       });
       
-      animationRef.current = requestAnimationFrame(animate);
+      // 绘制引力线（连接相关光子）
+      if (hoveredPhoton) {
+        const hoveredX = (hoveredPhoton.x / 100) * width;
+        const hoveredY = (hoveredPhoton.y / 100) * height;
+        
+        visiblePhotons.forEach(photon => {
+          if (photon.id !== hoveredPhoton.id && 
+              (photon.company === hoveredPhoton.company || photon.type === hoveredPhoton.type)) {
+            const x = (photon.x / 100) * width;
+            const y = (photon.y / 100) * height;
+            
+            const distance = Math.sqrt((x - hoveredX) ** 2 + (y - hoveredY) ** 2);
+            if (distance < 300) {
+              ctx.beginPath();
+              ctx.moveTo(hoveredX, hoveredY);
+              ctx.lineTo(x, y);
+              ctx.strokeStyle = `${hoveredPhoton.color}20`;
+              ctx.lineWidth = 1;
+              ctx.stroke();
+            }
+          }
+        });
+      }
+      
+      animationId = requestAnimationFrame(animate);
     };
     
-    animate();
+    animate(0);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      cancelAnimationFrame(animationId);
       resizeObserver.disconnect();
     };
-  }, [photons, timeRange, scale, offset, activeCompany, activeTemplate, hoveredPhoton, mousePos]);
+  }, [photons, timeRange, scale, offset, activeCompany, activeTemplate, hoveredPhoton, mousePos, backgroundStars]);
 
   // 鼠标事件处理
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -303,24 +423,31 @@ export default function StarCanvas({
     if (!canvas) return;
     
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const scaleFactor = window.devicePixelRatio || 1;
+    const x = (e.clientX - rect.left) * scaleFactor;
+    const y = (e.clientY - rect.top) * scaleFactor;
     
-    setMousePos({ x, y });
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
     
     if (isDragging) {
       const dx = x - dragStart.x;
       const dy = y - dragStart.y;
-      setOffset(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      setOffset(prev => ({ 
+        x: prev.x + dx / 100, 
+        y: prev.y + dy / 100 
+      }));
       setDragStart({ x, y });
     } else {
       // 检测悬停的光子
       const visiblePhotons = getFilteredPhotons();
       const hovered = visiblePhotons.find(photon => {
-        const px = (photon.x / 100) * canvas.width;
-        const py = (photon.y / 100) * canvas.height;
-        const distance = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
-        return distance < photon.size * 2;
+        const px = (photon.x / 100) * (canvas.width / scaleFactor);
+        const py = (photon.y / 100) * (canvas.height / scaleFactor);
+        const distance = Math.sqrt(
+          Math.pow(mousePos.x - px, 2) + 
+          Math.pow(mousePos.y - py, 2)
+        );
+        return distance < 40 * scale;
       });
       setHoveredPhoton(hovered || null);
     }
@@ -329,7 +456,15 @@ export default function StarCanvas({
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) { // 左键
       setIsDragging(true);
-      setDragStart({ x: e.clientX, y: e.clientY });
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleFactor = window.devicePixelRatio || 1;
+        setDragStart({ 
+          x: (e.clientX - rect.left) * scaleFactor, 
+          y: (e.clientY - rect.top) * scaleFactor 
+        });
+      }
     }
   };
 
@@ -353,11 +488,14 @@ export default function StarCanvas({
   return (
     <div 
       ref={containerRef}
-      className="w-full h-full relative cursor-grab active:cursor-grabbing"
+      className="w-full h-full relative cursor-grab active:cursor-grabbing select-none"
       onMouseMove={handleMouseMove}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      onMouseLeave={() => {
+        setIsDragging(false);
+        setHoveredPhoton(null);
+      }}
       onWheel={handleWheel}
       onClick={handleClick}
     >
@@ -367,8 +505,53 @@ export default function StarCanvas({
       />
       
       {/* 控制提示 */}
-      <div className="absolute bottom-4 right-4 text-xs text-gray-500">
-        <div>滚轮缩放 · 拖动平移 · 点击光子</div>
+      <div className="absolute bottom-6 left-6 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-2">
+        <div className="text-xs text-gray-400 flex items-center gap-3">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+            <span>滚轮缩放</span>
+          </span>
+          <span className="text-gray-600">•</span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+            <span>拖动平移</span>
+          </span>
+          <span className="text-gray-600">•</span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            <span>点击光子</span>
+          </span>
+        </div>
+      </div>
+      
+      {/* 缩放指示器 */}
+      <div className="absolute top-6 right-6 bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-2">
+        <div className="text-xs text-gray-400 flex items-center gap-2">
+          <span>缩放: {scale.toFixed(1)}x</span>
+          <div className="flex items-center">
+            {[0.5, 1, 1.5, 2, 2.5, 3].map((level) => (
+              <div 
+                key={level}
+                className={`w-1 h-3 mx-0.5 rounded-full transition-all ${
+                  scale >= level ? 'bg-blue-500' : 'bg-gray-700'
+                }`}
+              ></div>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {/* 时间范围指示器 */}
+      <div className="absolute top-1/2 left-6 transform -translate-y-1/2">
+        <div className="bg-black/40 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3">
+          <div className="text-xs text-gray-400 mb-2">时间轴</div>
+          <div className="text-white font-bold text-lg">
+            {timeRange.start} - {timeRange.end}
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            {getFilteredPhotons().length} 个光子可见
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { PhotonTemplate } from '@/lib/templates'; // 导入类型
 
 interface Photon {
-  id: number | string;  // 改为 number | string
+  id: number | string;
   content: string;
   author: string;
   type: string;
@@ -20,8 +21,8 @@ interface PhotonListProps {
   photons: Photon[];
   isLoading: boolean;
   onRefresh: () => void;
-  onLike: (id: number | string) => void;  // 改为 number | string
-  templates: any[];
+  onLike: (id: number | string) => void;
+  templates: readonly PhotonTemplate[];  // 改为只读数组
   companyColors: Record<string, string>;
 }
 

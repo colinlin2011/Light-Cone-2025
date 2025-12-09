@@ -8,6 +8,7 @@ import TemplateSelector from "@/components/TemplateSelector";
 import PhotonForm from "@/components/PhotonForm";
 import PhotonList from "@/components/PhotonList";
 import { supabase } from "@/lib/supabase";
+import { COMPANY_COLORS } from "@/lib/companyColors";
 import { PHOTON_TEMPLATES, PhotonTemplate } from "@/lib/templates";
 import { DbStatus } from "@/lib/types";
 import { formatPhotonFromDB, getInitialPhotons } from "@/utils/photonUtils";
@@ -233,6 +234,8 @@ export default function Home() {
           isLoading={isLoading} 
           onRefresh={loadPhotons} 
           onLike={handleLikePhoton} 
+          templates={PHOTON_TEMPLATES}
+          companyColors={COMPANY_COLORS}
         />
 
         {/* 底部信息 */}

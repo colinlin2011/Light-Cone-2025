@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 
 interface Photon {
-  id: number;
+  id: number | string;  // 改为 number | string
   content: string;
   author: string;
   type: string;
@@ -20,7 +20,7 @@ interface PhotonListProps {
   photons: Photon[];
   isLoading: boolean;
   onRefresh: () => void;
-  onLike: (id: number) => void;
+  onLike: (id: number | string) => void;  // 改为 number | string
   templates: any[];
   companyColors: Record<string, string>;
 }

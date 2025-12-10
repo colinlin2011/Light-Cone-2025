@@ -1,4 +1,4 @@
-// components/StarCanvas.tsx - 自包含修复版
+// components/StarCanvas.tsx - 电影级科幻版
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -71,22 +71,17 @@ export default function StarCanvas({
       const width = dimensions.width;
       const height = dimensions.height;
 
-      // 清空画布（拖尾效果）
-      ctx.fillStyle = 'rgba(5, 5, 15, 0.1)';
+      // 1. 清空画布（半透明拖尾）
+      ctx.fillStyle = 'rgba(0, 0, 5, 0.05)';
       ctx.fillRect(0, 0, width, height);
 
-      // 绘制深空背景
-      const bgGradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width / 2);
-      bgGradient.addColorStop(0, '#000810');
-      bgGradient.addColorStop(0.5, '#0a0a1a');
-      bgGradient.addColorStop(1, '#000000');
-      ctx.fillStyle = bgGradient;
-      ctx.fillRect(0, 0, width, height);
+      // 2. 多层星云背景
+      drawNebulaBackground(ctx, width, height, currentTime);
 
-      // 绘制粒子场
-      drawParticleField(ctx, width, height, currentTime);
+      // 3. 深度视差星星
+      drawParallaxStars(ctx, width, height, currentTime);
 
-      // 过滤光子
+      // 4. 过滤光子
       const filteredPhotons = photons.filter(p => 
         p.year >= timeRange.start && 
         p.year <= timeRange.end &&
@@ -94,7 +89,10 @@ export default function StarCanvas({
         (!activeTemplate || p.type === activeTemplate)
       );
 
-      // 绘制光子
+      // 5. 绘制光子间连接线（相关公司或相近时间）
+      drawPhotonConnections(ctx, filteredPhotons, width, height);
+
+      // 6. 绘制光子（引力透镜效果）
       filteredPhotons.forEach(photon => {
         const x = (photon.x / 100) * width;
         const y = (photon.y / 100) * height;
@@ -102,15 +100,11 @@ export default function StarCanvas({
         const distance = Math.sqrt((mousePos.x - x) ** 2 + (mousePos.y - y) ** 2);
         const isHovered = distance < photon.size * 3;
         
-        drawPhotonAura(ctx, x, y, photon, currentTime, isHovered);
-        drawPhotonCore(ctx, x, y, photon, isHovered);
-        drawPhotonRing(ctx, x, y, photon, currentTime);
-        
-        if (isHovered) setHoveredPhoton(photon);
+        drawGravitationalLens(ctx, x, y, photon, currentTime, isHovered);
       });
 
-      // 绘制扫描线
-      drawScanlines(ctx, width, height, currentTime);
+      // 7. HUD扫描线
+      drawEnhancedScanlines(ctx, width, height, currentTime);
 
       animationRef.current = requestAnimationFrame(animate);
     };
@@ -128,7 +122,7 @@ export default function StarCanvas({
     };
   }, [dimensions, photons, timeRange, activeCompany, activeTemplate, mousePos, hoveredPhoton]);
 
-  // 渲染悬停卡片（内联组件）
+  // 渲染悬停卡片
   const renderHoverCard = () => {
     if (!hoveredPhoton) return null;
 
@@ -144,10 +138,10 @@ export default function StarCanvas({
 
     return (
       <div 
-        className="absolute z-20 animate-fade-in glass-card p-4 max-w-xs"
+        className="absolute z-20 animate-fade-in"
         style={{ left: mousePos.x + 16, top: mousePos.y - 100 }}
       >
-        <div className="bg-black/80 backdrop-blur-xl border border-cyan-500/30 rounded-xl p-4 text-white max-w-xs">
+        <div className="bg-black/80 backdrop-blur-xl border border-cyan-500/30 rounded-xl p-4 text-white max-w-xs shadow-2xl">
           <div className="flex items-center gap-2 mb-2">
             <div 
               className="w-3 h-3 rounded-full animate-pulse"
@@ -161,7 +155,7 @@ export default function StarCanvas({
           <p className="text-sm mb-3 line-clamp-3">{hoveredPhoton.content}</p>
           <div className="flex items-center justify-between text-xs">
             <span className="text-gray-300">{hoveredPhoton.author.split('@')[0]}</span>
-            <span className="text-cyan-400 flex items-center gap-1">
+            <span className="text-cyan-400 flex items-center gap-1 font-bold">
               💫 {hoveredPhoton.likes}
             </span>
           </div>
@@ -178,112 +172,227 @@ export default function StarCanvas({
       <div className="absolute top-6 left-6 font-mono text-xs text-cyan-400/60 pointer-events-none">
         <div>LIGHT CONE v2.0</div>
         <div>PHOTONS: {photons.length}</div>
-        <div>TIME: {timeRange.start}-{timeRange.end}</div>
+        <div>TIME-RANGE: {timeRange.start}-{timeRange.end}</div>
       </div>
 
-      {/* 悬停卡片 */}
+      {/* 时间轴HUD */}
+      <div className="absolute bottom-8 left-8 right-8 flex justify-between text-xs text-white/40 font-mono pointer-events-none">
+        {[2015, 2020, 2025, 2030, 2035].map(year => (
+          <span key={year}>{year}</span>
+        ))}
+      </div>
+
       {renderHoverCard()}
     </div>
   );
 }
 
-// ===== 以下保持所有渲染函数不变 =====
+// 多层星云背景
+function drawNebulaBackground(ctx: CanvasRenderingContext2D, width: number, height: number, time: number) {
+  // 紫色星云层
+  const nebula1 = ctx.createRadialGradient(width * 0.3, height * 0.2, 0, width * 0.3, height * 0.2, width * 0.6);
+  nebula1.addColorStop(0, 'rgba(139, 92, 246, 0.1)');
+  nebula1.addColorStop(1, 'rgba(139, 92, 246, 0)');
+  ctx.fillStyle = nebula1;
+  ctx.fillRect(0, 0, width, height);
 
-function drawParticleField(ctx: CanvasRenderingContext2D, width: number, height: number, time: number) {
-  const particleCount = 50;
-  for (let i = 0; i < particleCount; i++) {
-    const seed = i * 1000;
-    const x = ((Math.sin(seed + time * 0.0001) * 0.5 + 0.5) * width);
-    const y = ((Math.cos(seed * 1.5 + time * 0.00015) * 0.5 + 0.5) * height);
-    const size = Math.sin(time * 0.001 + seed) * 1 + 1.5;
-    
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    const alpha = Math.sin(time * 0.002 + seed) * 0.3 + 0.4;
-    ctx.fillStyle = `rgba(6, 182, 212, ${alpha})`;
-    ctx.fill();
-  }
+  // 蓝色星云层（缓慢移动）
+  const nebula2 = ctx.createRadialGradient(
+    width * 0.7 + Math.sin(time * 0.0001) * 50, 
+    height * 0.8 + Math.cos(time * 0.0001) * 30, 
+    0, 
+    width * 0.7, 
+    height * 0.8, 
+    width * 0.5
+  );
+  nebula2.addColorStop(0, 'rgba(6, 182, 212, 0.08)');
+  nebula2.addColorStop(1, 'rgba(6, 182, 212, 0)');
+  ctx.fillStyle = nebula2;
+  ctx.fillRect(0, 0, width, height);
+
+  // 中央光晕
+  const centralGlow = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width * 0.4);
+  centralGlow.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
+  centralGlow.addColorStop(1, 'rgba(59, 130, 246, 0)');
+  ctx.fillStyle = centralGlow;
+  ctx.fillRect(0, 0, width, height);
 }
 
-function drawPhotonAura(ctx: CanvasRenderingContext2D, x: number, y: number, photon: StarPhoton, time: number, isHovered: boolean) {
-  const baseRadius = photon.size * 3;
-  const pulseRadius = baseRadius + Math.sin(time * 0.003 + Number(photon.id)) * 5;
-  const finalRadius = isHovered ? pulseRadius * 1.5 : pulseRadius;
+// 视差星星（多层深度）
+function drawParallaxStars(ctx: CanvasRenderingContext2D, width: number, height: number, time: number) {
+  const layers = [
+    { count: 100, speed: 0.1, size: 0.5, opacity: 0.3 },
+    { count: 50, speed: 0.3, size: 1, opacity: 0.6 },
+    { count: 25, speed: 0.5, size: 1.5, opacity: 0.9 }
+  ];
+
+  layers.forEach((layer, layerIndex) => {
+    for (let i = 0; i < layer.count; i++) {
+      const seed = i * 1000 + layerIndex * 10000;
+      const x = ((Math.sin(seed) * 0.5 + 0.5) * width + time * layer.speed) % width;
+      const y = ((Math.cos(seed * 1.5) * 0.5 + 0.5) * height;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, layer.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${layer.opacity})`;
+      ctx.fill();
+      
+      // 闪烁效果
+      if (i % 7 === 0) {
+        const twinkle = Math.sin(time * 0.003 + seed) * 0.5 + 0.5;
+        ctx.beginPath();
+        ctx.arc(x, y, layer.size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${twinkle * 0.1})`;
+        ctx.fill();
+      }
+    }
+  });
+}
+
+// 光子连接网络
+function drawPhotonConnections(ctx: CanvasRenderingContext2D, photons: StarPhoton[], width: number, height: number) {
+  photons.forEach((photon, i) => {
+    const x1 = (photon.x / 100) * width;
+    const y1 = (photon.y / 100) * height;
+    
+    // 连接同公司或相近年份的光子
+    photons.slice(i + 1).forEach(otherPhoton => {
+      const shouldConnect = 
+        otherPhoton.company === photon.company || 
+        Math.abs(otherPhoton.year - photon.year) <= 2;
+      
+      if (!shouldConnect) return;
+      
+      const x2 = (otherPhoton.x / 100) * width;
+      const y2 = (otherPhoton.y / 100) * height;
+      const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+      
+      if (distance > 300) return; // 只连接近距离的
+      
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      
+      const alpha = Math.max(0, 1 - distance / 300) * 0.1;
+      ctx.strokeStyle = `rgba(6, 182, 212, ${alpha})`;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+  });
+}
+
+// 引力透镜效果
+function drawGravitationalLens(ctx: CanvasRenderingContext2D, x: number, y: number, photon: StarPhoton, time: number, isHovered: boolean) {
+  // 外层引力场
+  const fieldRadius = photon.size * 4;
+  const fieldGradient = ctx.createRadialGradient(x, y, 0, x, y, fieldRadius);
+  fieldGradient.addColorStop(0, `${photon.color}10`);
+  fieldGradient.addColorStop(0.5, `${photon.color}05`);
+  fieldGradient.addColorStop(1, `${photon.color}00`);
   
-  const gradient = ctx.createRadialGradient(x, y, 0, x, y, finalRadius);
-  gradient.addColorStop(0, `${photon.color}40`);
-  gradient.addColorStop(0.5, `${photon.color}20`);
-  gradient.addColorStop(1, `${photon.color}00`);
+  ctx.beginPath();
+  ctx.arc(x, y, fieldRadius, 0, Math.PI * 2);
+  ctx.fillStyle = fieldGradient;
+  ctx.fill();
+
+  // 光晕层
+  const auraRadius = photon.size * 2 + Math.sin(time * 0.003 + Number(photon.id)) * 5;
+  const finalRadius = isHovered ? auraRadius * 1.8 : auraRadius;
+  
+  const auraGradient = ctx.createRadialGradient(x, y, 0, x, y, finalRadius);
+  auraGradient.addColorStop(0, `${photon.color}60`);
+  auraGradient.addColorStop(0.7, `${photon.color}20`);
+  auraGradient.addColorStop(1, `${photon.color}00`);
   
   ctx.beginPath();
   ctx.arc(x, y, finalRadius, 0, Math.PI * 2);
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = auraGradient;
   ctx.fill();
-}
 
-function drawPhotonCore(ctx: CanvasRenderingContext2D, x: number, y: number, photon: StarPhoton, isHovered: boolean) {
-  const coreSize = isHovered ? photon.size * 1.3 : photon.size;
+  // 核心光子
+  const coreSize = isHovered ? photon.size * 1.5 : photon.size;
+  const coreGradient = ctx.createRadialGradient(x - coreSize/3, y - coreSize/3, 0, x, y, coreSize);
+  coreGradient.addColorStop(0, '#ffffff');
+  coreGradient.addColorStop(0.6, photon.color);
+  coreGradient.addColorStop(1, `${photon.color}80`);
   
   ctx.beginPath();
   ctx.arc(x, y, coreSize, 0, Math.PI * 2);
-  const gradient = ctx.createRadialGradient(x - coreSize/3, y - coreSize/3, 0, x, y, coreSize);
-  gradient.addColorStop(0, '#ffffff');
-  gradient.addColorStop(0.7, photon.color);
-  gradient.addColorStop(1, `${photon.color}80`);
-  ctx.fillStyle = gradient;
+  ctx.fillStyle = coreGradient;
   ctx.fill();
-  
+
+  // 高光点
   ctx.beginPath();
-  ctx.arc(x - coreSize * 0.3, y - coreSize * 0.3, coreSize * 0.3, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+  ctx.arc(x - coreSize * 0.3, y - coreSize * 0.3, coreSize * 0.25, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
   ctx.fill();
-  
+
+  // 公司色环
   ctx.beginPath();
-  ctx.arc(x, y, coreSize * 1.2, 0, Math.PI * 2);
-  ctx.strokeStyle = `${photon.companyColor}60`;
+  ctx.arc(x, y, coreSize * 1.3, 0, Math.PI * 2);
+  ctx.strokeStyle = `${photon.companyColor}80`;
   ctx.lineWidth = 2;
-  ctx.shadowBlur = 10;
+  ctx.shadowBlur = 15;
   ctx.shadowColor = photon.companyColor;
   ctx.stroke();
   ctx.shadowBlur = 0;
-}
 
-function drawPhotonRing(ctx: CanvasRenderingContext2D, x: number, y: number, photon: StarPhoton, time: number) {
-  if (photon.likes < 10) return;
-  
-  const ringCount = Math.min(3, Math.floor(photon.likes / 10));
-  for (let i = 0; i < ringCount; i++) {
-    const delay = i * 1000;
-    const progress = ((time + delay) % 5000) / 5000;
-    const radius = photon.size * 2 + progress * 20;
-    const alpha = Math.sin(progress * Math.PI) * 0.5;
-    
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(59, 130, 246, ${alpha})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
+  // 共鸣环（根据likes数量）
+  if (photon.likes >= 10) {
+    const ringCount = Math.min(4, Math.floor(photon.likes / 15));
+    for (let i = 0; i < ringCount; i++) {
+      const delay = i * 1200;
+      const progress = ((time + delay) % 6000) / 6000;
+      const ringRadius = coreSize * 2 + progress * 25;
+      const ringAlpha = Math.sin(progress * Math.PI) * 0.6;
+      
+      ctx.beginPath();
+      ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(59, 130, 246, ${ringAlpha})`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
   }
 }
 
-function drawScanlines(ctx: CanvasRenderingContext2D, width: number, height: number, time: number) {
-  const scanY = (time * 0.1) % height;
-  ctx.fillStyle = `rgba(6, 182, 212, 0.05)`;
-  ctx.fillRect(0, scanY, width, 2);
+// 增强HUD扫描线
+function drawEnhancedScanlines(ctx: CanvasRenderingContext2D, width: number, height: number, time: number) {
+  // 水平扫描线
+  const scanY = (time * 0.08) % height;
+  ctx.fillStyle = `rgba(6, 182, 212, 0.08)`;
+  ctx.fillRect(0, scanY - 1, width, 3);
   
-  const cornerSize = 20;
-  ctx.strokeStyle = 'rgba(6, 182, 212, 0.3)';
-  ctx.lineWidth = 1;
+  // 角落装饰
+  const cornerSize = 25;
+  const cornerAlpha = 0.4 + Math.sin(time * 0.002) * 0.2;
+  ctx.strokeStyle = `rgba(6, 182, 212, ${cornerAlpha})`;
+  ctx.lineWidth = 2;
   
+  // 左上角
   ctx.beginPath();
   ctx.moveTo(0, cornerSize);
   ctx.lineTo(0, 0);
   ctx.lineTo(cornerSize, 0);
   ctx.stroke();
   
+  // 右上角
   ctx.beginPath();
   ctx.moveTo(width - cornerSize, 0);
   ctx.lineTo(width, 0);
   ctx.lineTo(width, cornerSize);
+  ctx.stroke();
+  
+  // 左下角
+  ctx.beginPath();
+  ctx.moveTo(0, height - cornerSize);
+  ctx.lineTo(0, height);
+  ctx.lineTo(cornerSize, height);
+  ctx.stroke();
+  
+  // 右下角
+  ctx.beginPath();
+  ctx.moveTo(width - cornerSize, height);
+  ctx.lineTo(width, height);
+  ctx.lineTo(width, height - cornerSize);
   ctx.stroke();
 }

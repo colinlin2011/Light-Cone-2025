@@ -1,4 +1,4 @@
-// app/page-new.tsx - 修复版（使用你现有的组件）
+// app/page-new.tsx - 修复布局版本
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -11,7 +11,7 @@ import ViewSelector from '@/components/ViewSelector';
 import PhotonList from '@/components/PhotonList';
 import CompanyView from '@/components/CompanyView';
 import TemplateLegend from '@/components/TemplateLegend';
-import DatabaseStatus from '@/components/DatabaseStatus'; // 使用你现有的组件
+import DatabaseStatus from '@/components/DatabaseStatus';
 
 type ViewMode = 'starfield' | 'list' | 'company';
 
@@ -31,19 +31,16 @@ interface Photon {
   year?: number;
 }
 
-// 光子详情模态框组件（定义在文件内部，因为你可能没有这个独立组件）
+// 光子详情模态框组件
 function PhotonDetailModal({ photon, onClose, onLike, companyColors }: any) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* 背景遮罩 */}
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       />
       
-      {/* 卡片内容 */}
       <div className="relative bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl p-8 max-w-lg w-full shadow-2xl">
-        {/* 关闭按钮 */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition"
@@ -51,7 +48,6 @@ function PhotonDetailModal({ photon, onClose, onLike, companyColors }: any) {
           ✕
         </button>
         
-        {/* 光子标识 */}
         <div className="flex items-center gap-3 mb-6">
           <div 
             className="w-10 h-10 rounded-full relative flex items-center justify-center"
@@ -75,12 +71,10 @@ function PhotonDetailModal({ photon, onClose, onLike, companyColors }: any) {
           </div>
         </div>
         
-        {/* 内容 */}
         <div className="mb-8">
           <p className="text-xl text-white leading-relaxed italic">"{photon.content}"</p>
         </div>
         
-        {/* 作者信息 */}
         <div className="mb-8 p-4 bg-gradient-to-r from-white/5 to-transparent rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
@@ -95,7 +89,6 @@ function PhotonDetailModal({ photon, onClose, onLike, companyColors }: any) {
           </div>
         </div>
         
-        {/* 互动按钮 */}
         <div className="flex gap-3">
           <button
             onClick={() => onLike(photon.id)}
@@ -133,6 +126,7 @@ export default function HomePage() {
   const loadPhotons = async () => {
     setIsLoading(true);
     try {
+      console.log('开始加载光子数据...');
       const { data, error } = await supabase
         .from('photons')
         .select('*')
@@ -140,6 +134,8 @@ export default function HomePage() {
         .limit(100);
 
       if (error) throw error;
+
+      console.log('从数据库加载到数据:', data?.length || 0, '条');
 
       const formattedPhotons: Photon[] = data.map((photon: any) => {
         const date = new Date(photon.created_at);
@@ -165,13 +161,20 @@ export default function HomePage() {
       
       // 合并演示数据
       const demoPhotons = getDemoPhotons();
-      setPhotons([...formattedPhotons, ...demoPhotons]);
+      console.log('演示数据:', demoPhotons.length, '条');
+      
+      const allPhotons = [...formattedPhotons, ...demoPhotons];
+      console.log('总光子数:', allPhotons.length, '条');
+      
+      setPhotons(allPhotons);
       setDbStatus('connected');
     } catch (error) {
       console.error('加载失败:', error);
       setDbStatus('error');
       // 使用示例数据
-      setPhotons(getDemoPhotons());
+      const demoPhotons = getDemoPhotons();
+      console.log('使用演示数据:', demoPhotons.length, '条');
+      setPhotons(demoPhotons);
     } finally {
       setIsLoading(false);
     }
@@ -246,28 +249,71 @@ export default function HomePage() {
         : photon
     ));
     
-    // 这里可以添加API调用更新数据库
     console.log('共鸣了光子:', photonId);
   };
 
-  return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
-      {/* 星空画布背景 */}
-      <div className="absolute inset-0 z-0">
-        <StarCanvas 
-          photons={getStarfieldData()}
-          timeRange={timeRange}
-          onPhotonClick={handlePhotonClick}
-          activeCompany={activeCompany}
-          activeTemplate={activeTemplate}
-        />
+  // 简化版本的星空背景（如果Canvas有问题，先用这个）
+  const SimpleStarBackground = () => {
+    return (
+      <div className="absolute inset-0 bg-black overflow-hidden">
+        {/* 渐变背景 */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black via-blue-950/10 to-purple-950/10"></div>
+        
+        {/* 静态星星 */}
+        {Array.from({ length: 100 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 bg-white rounded-full animate-pulse"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 5}s`,
+              opacity: Math.random() * 0.7 + 0.3
+            }}
+          ></div>
+        ))}
+        
+        {/* 光子点 */}
+        {photons.slice(0, 20).map((photon, i) => {
+          const x = Math.random() * 80 + 10;
+          const y = Math.random() * 80 + 10;
+          const color = photon.color || getTypeColor(photon.type);
+          
+          return (
+            <div
+              key={i}
+              className="absolute rounded-full cursor-pointer transition-all hover:scale-125"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                width: `${Math.min(40, Math.max(15, photon.likes / 2 + 15))}px`,
+                height: `${Math.min(40, Math.max(15, photon.likes / 2 + 15))}px`,
+                background: `radial-gradient(circle at 30% 30%, white, ${color})`,
+                boxShadow: `0 0 20px ${color}`,
+                transform: 'translate(-50%, -50%)'
+              }}
+              onClick={() => handlePhotonClick({
+                ...photon,
+                x, y,
+                size: Math.min(40, Math.max(15, photon.likes / 2 + 15)),
+                brightness: Math.min(1, Math.max(0.3, photon.likes / 100))
+              })}
+            >
+              <div 
+                className="absolute -inset-2 rounded-full border"
+                style={{ borderColor: COMPANY_COLORS[photon.company] || '#6b7280' }}
+              ></div>
+            </div>
+          );
+        })}
       </div>
+    );
+  };
 
-      {/* 顶部渐变遮罩 */}
-      <div className="absolute top-0 left-0 right-0 h-40 bg-gradient-to-b from-black via-black/90 to-transparent z-10 pointer-events-none"></div>
-
-      {/* 顶部导航栏 */}
-      <div className="absolute top-0 left-0 right-0 z-20 px-6 pt-6">
+  return (
+    <div className="relative w-full min-h-screen bg-black">
+      {/* 顶部导航栏 - 固定在顶部 */}
+      <div className="fixed top-0 left-0 right-0 z-50 px-6 pt-6 pb-4 bg-gradient-to-b from-black/90 to-transparent">
         <div className="flex justify-between items-start">
           {/* 左侧标题 */}
           <div className="flex items-center gap-4">
@@ -285,7 +331,7 @@ export default function HomePage() {
 
           {/* 右侧控制区 */}
           <div className="flex flex-col items-end gap-4">
-            {/* 数据库状态 - 使用你现有的组件 */}
+            {/* 数据库状态 */}
             <DatabaseStatus 
               status={dbStatus} 
               photonCount={photons.length}
@@ -317,13 +363,27 @@ export default function HomePage() {
       </div>
 
       {/* 主内容区域 */}
-      <div className="absolute inset-0 z-10 pt-28 pb-48 px-6">
+      <div className="pt-32 pb-24 px-6 min-h-screen">
         {/* 星空视图 */}
         {viewMode === 'starfield' && (
-          <div className="h-full relative">
-            {/* 时间轴控制 */}
-            <div className="absolute bottom-0 left-0 right-0 flex justify-center">
-              <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 w-full max-w-4xl">
+          <div className="relative h-[calc(100vh-12rem)] rounded-3xl overflow-hidden border border-white/10">
+            {/* 星空背景 */}
+            <div className="absolute inset-0">
+              <StarCanvas 
+                photons={getStarfieldData()}
+                timeRange={timeRange}
+                onPhotonClick={handlePhotonClick}
+                activeCompany={activeCompany}
+                activeTemplate={activeTemplate}
+              />
+            </div>
+            
+            {/* 备用简单星空（如果Canvas不工作） */}
+            {/* <SimpleStarBackground /> */}
+
+            {/* 控制面板 */}
+            <div className="absolute bottom-6 left-6 right-6">
+              <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
                 <div className="flex items-center justify-between gap-6">
                   <div className="text-white">
                     <div className="text-sm text-gray-400 mb-1">时间范围</div>
@@ -358,101 +418,97 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+
+            {/* 左侧公司筛选 */}
+            <div className="absolute left-6 top-6">
+              <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
+                <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
+                  <span>🏢</span>
+                  <span>公司筛选</span>
+                </h3>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                  <button
+                    onClick={() => setActiveCompany(null)}
+                    className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-all flex items-center gap-2 ${
+                      !activeCompany ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-white/5 text-gray-400'
+                    }`}
+                  >
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
+                    <span>全部公司</span>
+                  </button>
+                  
+                  {Object.keys(COMPANY_COLORS).map(company => (
+                    <button
+                      key={company}
+                      onClick={() => setActiveCompany(activeCompany === company ? null : company)}
+                      className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-all flex items-center gap-2 ${
+                        activeCompany === company 
+                          ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white' 
+                          : 'hover:bg-white/5 text-gray-400'
+                      }`}
+                      style={{
+                        borderLeft: activeCompany === company ? `3px solid ${COMPANY_COLORS[company]}` : 'none'
+                      }}
+                    >
+                      <div 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: COMPANY_COLORS[company] }}
+                      ></div>
+                      <span>{company}</span>
+                      <span className="ml-auto text-xs text-gray-500">
+                        {photons.filter(p => p.company === company).length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 底部图例 */}
+            <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2">
+              <TemplateLegend 
+                templates={PHOTON_TEMPLATES}
+                activeTemplate={activeTemplate}
+                onTemplateClick={setActiveTemplate}
+              />
+            </div>
+
+            {/* 交互提示 */}
+            {photons.length > 0 && (
+              <div className="absolute bottom-6 right-6">
+                <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-3 animate-pulse">
+                  <div className="text-xs text-gray-400 flex items-center gap-2">
+                    <span>✨</span>
+                    <span>点击光子查看详情</span>
+                    <span className="text-gray-500">•</span>
+                    <span>滚轮缩放</span>
+                    <span className="text-gray-500">•</span>
+                    <span>拖动平移</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* 列表视图 */}
         {viewMode === 'list' && (
-          <div className="h-full bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden">
+          <div className="h-[calc(100vh-12rem)] bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden">
             <PhotonList photons={photons} />
           </div>
         )}
 
         {/* 公司视图 */}
         {viewMode === 'company' && (
-          <div className="h-full bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden">
+          <div className="h-[calc(100vh-12rem)] bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden">
             <CompanyView photons={photons} />
           </div>
         )}
       </div>
 
-      {/* 左侧控制面板 - 公司筛选 */}
-      {viewMode === 'starfield' && (
-        <div className="absolute left-6 top-48 z-20">
-          <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
-            <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
-              <span>🏢</span>
-              <span>公司筛选</span>
-            </h3>
-            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-              <button
-                onClick={() => setActiveCompany(null)}
-                className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-all flex items-center gap-2 ${
-                  !activeCompany ? 'bg-blue-500/20 text-blue-400' : 'hover:bg-white/5 text-gray-400'
-                }`}
-              >
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
-                <span>全部公司</span>
-              </button>
-              
-              {Object.keys(COMPANY_COLORS).map(company => (
-                <button
-                  key={company}
-                  onClick={() => setActiveCompany(activeCompany === company ? null : company)}
-                  className={`w-full px-3 py-2 rounded-lg text-sm text-left transition-all flex items-center gap-2 ${
-                    activeCompany === company 
-                      ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white' 
-                      : 'hover:bg-white/5 text-gray-400'
-                  }`}
-                  style={{
-                    borderLeft: activeCompany === company ? `3px solid ${COMPANY_COLORS[company]}` : 'none'
-                  }}
-                >
-                  <div 
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: COMPANY_COLORS[company] }}
-                  ></div>
-                  <span>{company}</span>
-                  <span className="ml-auto text-xs text-gray-500">
-                    {photons.filter(p => p.company === company).length}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 底部图例 */}
-      {viewMode === 'starfield' && (
-        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-20">
-          <TemplateLegend 
-            templates={PHOTON_TEMPLATES}
-            activeTemplate={activeTemplate}
-            onTemplateClick={setActiveTemplate}
-          />
-        </div>
-      )}
-
-      {/* 交互提示 */}
-      {viewMode === 'starfield' && photons.length > 0 && (
-        <div className="absolute bottom-6 right-6 z-20">
-          <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-3 animate-pulse">
-            <div className="text-xs text-gray-400 flex items-center gap-2">
-              <span>✨</span>
-              <span>点击光子查看详情</span>
-              <span className="text-gray-500">•</span>
-              <span>滚轮缩放</span>
-              <span className="text-gray-500">•</span>
-              <span>拖动平移</span>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* 加载状态 */}
       {isLoading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="text-center">
             <div className="text-4xl mb-4 animate-spin">🌌</div>
             <div className="text-gray-400">加载光子中...</div>
@@ -460,7 +516,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 光子详情模态框 - 使用内联组件 */}
+      {/* 光子详情模态框 */}
       {selectedPhoton && (
         <PhotonDetailModal
           photon={selectedPhoton}
@@ -470,7 +526,7 @@ export default function HomePage() {
         />
       )}
 
-      {/* 添加光子模态框 - 使用你现有的组件 */}
+      {/* 添加光子模态框 */}
       {isAddModalOpen && (
         <AddPhotonModal 
           onClose={() => setIsAddModalOpen(false)}
@@ -490,14 +546,6 @@ export default function HomePage() {
 function getDemoPhotons(): Photon[] {
   const companies = ["华为", "蔚来", "小鹏", "卓驭", "特斯拉", "百度", "理想"];
   const types = ["moment", "prophecy", "culture", "inspiration", "darkmoment", "history"];
-  const typeNames = {
-    "moment": "那个瞬间",
-    "prophecy": "预言胶囊", 
-    "culture": "团队文化",
-    "inspiration": "灵光闪现",
-    "darkmoment": "至暗时刻",
-    "history": "历史记录"
-  };
   
   const demoPhotons: Photon[] = [];
   

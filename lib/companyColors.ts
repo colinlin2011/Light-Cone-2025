@@ -1,13 +1,16 @@
 // lib/companyColors.ts
 export const COMPANY_COLORS: Record<string, string> = {
-  "华为": "border-red-500/30",
-  "蔚来": "border-blue-500/30", 
-  "小鹏": "border-green-500/30",
-  "卓驭": "border-orange-500/30",
-  "特斯拉": "border-gray-500/30",
-  "百度": "border-blue-400/30",
-  "理想": "border-purple-400/30",
-  "其他": "border-gray-700/30"
+  "华为": "#ef4444", // red-500
+  "蔚来": "#3b82f6", // blue-500
+  "小鹏": "#22c55e", // green-500
+  "卓驭": "#f97316", // orange-500
+  "特斯拉": "#6b7280", // gray-500
+  "百度": "#60a5fa", // blue-400
+  "理想": "#c084fc", // purple-400
+  "小米": "#f59e0b", // amber-500
+  "Momenta": "#06b6d4", // cyan-500
+  "地平线": "#84cc16", // lime-500
+  "其他": "#4b5563"  // gray-600
 };
 
 export const getCompanyColor = (company: string = "其他") => {

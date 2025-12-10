@@ -1,4 +1,4 @@
-// app/page-new.tsx - 修复 ID 类型错误版
+// app/page-new.tsx - 修复黑屏与无限滚动版
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -14,7 +14,6 @@ import TemplateLegend from '@/components/TemplateLegend';
 import DatabaseStatus from '@/components/DatabaseStatus';
 import { Photon, DbStatus } from '@/lib/types';
 
-// 扩展类型定义
 interface ExtendedPhoton extends Photon {
   color?: string;
   year?: number;
@@ -118,7 +117,6 @@ export default function HomePage() {
   const [activeTemplate, setActiveTemplate] = useState<string | null>(null);
   const [selectedPhoton, setSelectedPhoton] = useState<ExtendedPhoton | null>(null);
   
-  // 加载数据
   const loadPhotons = async () => {
     setIsLoading(true);
     try {
@@ -170,13 +168,12 @@ export default function HomePage() {
     loadPhotons();
   }, []);
 
-  // 准备星空数据
   const getStarfieldData = (): StarPhotonData[] => {
     return photons.map(photon => {
       const safeYear = photon.year || 2024;
-      
       const yearRandom = (Math.random() - 0.5) * 0.8; 
       const yearProgress = (safeYear + yearRandom - timeRange.start) / (timeRange.end - timeRange.start);
+      // X轴范围：5% - 95%
       const x = Math.max(5, Math.min(95, yearProgress * 90 + 5)); 
       
       let y;
@@ -206,7 +203,8 @@ export default function HomePage() {
   };
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden text-white font-sans selection:bg-blue-500/30">
+    // 关键修复：改为 fixed inset-0，强制锁定视口，防止 canvas 撑开高度
+    <div className="fixed inset-0 w-full h-full bg-black overflow-hidden text-white font-sans selection:bg-blue-500/30">
       
       {/* 1. 背景层：星空画布 */}
       <div className={`absolute inset-0 transition-opacity duration-700 ${viewMode === 'starfield' ? 'opacity-100' : 'opacity-20 blur-sm'}`}>
@@ -324,7 +322,6 @@ export default function HomePage() {
   );
 }
 
-// 演示数据 - 修复：ID 使用负数以匹配 number 类型
 function getDemoPhotons(): ExtendedPhoton[] {
   const companies = ["华为", "蔚来", "小鹏", "卓驭", "特斯拉", "百度", "理想", "Momenta", "地平线", "小米"];
   const types = ["moment", "prophecy", "culture", "inspiration", "darkmoment", "history"];
@@ -335,8 +332,8 @@ function getDemoPhotons(): ExtendedPhoton[] {
     const type = types[Math.floor(Math.random() * types.length)];
     
     return {
-      id: -(i + 1), // 使用负数 ID 确保类型为 number
-      content: `这是第 ${i} 个光子，记录了 ${company} 在 ${year} 年的一个关键时刻。行业正在飞速发展，每一个瞬间都值得铭记。`,
+      id: -(i + 1),
+      content: `这是第 ${i} 个光子，记录了 ${company} 在 ${year} 年的一个关键时刻。`,
       author: `工程师 ${i}`,
       type,
       likes: Math.floor(Math.random() * 100),

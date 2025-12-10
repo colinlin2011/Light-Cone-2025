@@ -1,4 +1,4 @@
-// app/page-new.tsx - 修复类型错误版
+// app/page-new.tsx - 修复 ID 类型错误版
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -30,11 +30,11 @@ interface StarPhotonData {
   brightness: number;
   type: string;
   company: string;
-  year: number;      // 必须是 number
+  year: number;
   content: string;
   author: string;
   likes: number;
-  color: string;     // 必须是 string
+  color: string;
   companyColor: string;
 }
 
@@ -170,10 +170,9 @@ export default function HomePage() {
     loadPhotons();
   }, []);
 
-  // 准备星空数据 - 这里的返回类型必须匹配 StarCanvas 的要求
+  // 准备星空数据
   const getStarfieldData = (): StarPhotonData[] => {
     return photons.map(photon => {
-      // 1. 确保 year 是数字
       const safeYear = photon.year || 2024;
       
       const yearRandom = (Math.random() - 0.5) * 0.8; 
@@ -189,13 +188,12 @@ export default function HomePage() {
          y = baseY + (Math.random() - 0.5) * 10; 
       }
       
-      // 2. 构造返回对象，显式覆盖 year 和 color
       return {
         ...photon,
         x,
         y,
-        year: safeYear, // 显式赋值，确保不是 undefined
-        color: photon.color || getTypeColor(photon.type), // 显式赋值
+        year: safeYear,
+        color: photon.color || getTypeColor(photon.type),
         size: Math.min(50, Math.max(10, photon.likes / 5 + 8)), 
         brightness: Math.min(1, Math.max(0.4, photon.likes / 50)),
         companyColor: COMPANY_COLORS[photon.company] || '#6b7280'
@@ -326,7 +324,7 @@ export default function HomePage() {
   );
 }
 
-// 演示数据
+// 演示数据 - 修复：ID 使用负数以匹配 number 类型
 function getDemoPhotons(): ExtendedPhoton[] {
   const companies = ["华为", "蔚来", "小鹏", "卓驭", "特斯拉", "百度", "理想", "Momenta", "地平线", "小米"];
   const types = ["moment", "prophecy", "culture", "inspiration", "darkmoment", "history"];
@@ -337,7 +335,7 @@ function getDemoPhotons(): ExtendedPhoton[] {
     const type = types[Math.floor(Math.random() * types.length)];
     
     return {
-      id: `demo_${i}`,
+      id: -(i + 1), // 使用负数 ID 确保类型为 number
       content: `这是第 ${i} 个光子，记录了 ${company} 在 ${year} 年的一个关键时刻。行业正在飞速发展，每一个瞬间都值得铭记。`,
       author: `工程师 ${i}`,
       type,

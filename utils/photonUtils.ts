@@ -1,42 +1,35 @@
-// utils/photonUtils.ts
+// utils/photonUtils.ts - 修复版
 import { Photon, PhotonFromDB } from '@/lib/types';
 
-export const formatPhotonFromDB = (photon: PhotonFromDB): Photon => {
+// 将 PhotonFromDB 转换为前端 Photon 类型
+export function photonMapper(dbPhoton: PhotonFromDB): Photon {
   return {
-    id: parseInt(photon.id, 16) || 0, // 简单转换，实际应用中可能需要更好的id转换
-    content: photon.content,
-    author: `${photon.author_name || '匿名用户'}${photon.author_profession ? ` · ${photon.author_profession}` : ''}${photon.author_company ? ` @ ${photon.author_company}` : ''}`,
-    type: photon.template_type || 'moment',
-    likes: photon.likes_count || 0,
-    time: new Date(photon.created_at).toLocaleDateString('zh-CN'),
-    company: photon.author_company || '其他',
-    author_name: photon.author_name,
-    author_company: photon.author_company,
-    author_profession: photon.author_profession,
-    created_at: photon.created_at,
-    isFromDB: true
+    id: dbPhoton.id,
+    content: dbPhoton.content,
+    type: dbPhoton.template_type,
+    author: dbPhoton.author_name,
+    author_name: dbPhoton.author_name,
+    author_company: dbPhoton.author_company,
+    author_profession: dbPhoton.author_profession,
+    likes: dbPhoton.likes_count,
+    time: dbPhoton.created_at,
+    company: dbPhoton.author_company || '其他',
+    isFromDB: true,
+    // 移除 created_at，因为它不在 Photon 类型定义中
+    // 创建时间已通过 time 字段传递
   };
-};
+}
 
-export const getInitialPhotons = (): Photon[] => [
-  {
-    id: 1,
-    content: "2024年，第一次看到端到端大模型在车上运行，我知道游戏规则要变了。",
-    author: "感知算法工程师 @ 华为",
-    type: "moment",
-    likes: 42,
-    time: "2024-03-15",
-    company: "华为",
-    isFromDB: false
-  },
-  {
-    id: 2, 
-    content: "预言：2027年之前，L4会在特定场景落地，但通用L4仍需10年。",
-    author: "系统架构师 @ 蔚来",
-    type: "prophecy",
-    likes: 28,
-    time: "2024-03-14",
-    company: "蔚来",
-    isFromDB: false
-  }
-];
+// 根据光子类型获取颜色
+export function getPhotonColor(type: string): string {
+  const colors: Record<string, string> = {
+    'moment': '#3b82f6',
+    'prophecy': '#8b5cf6',
+    'culture': '#f59e0b',
+    'inspiration': '#06b6d4',
+    'darkmoment': '#ef4444',
+    'history': '#f97316',
+    'onsite': '#10b981'
+  };
+  return colors[type] || '#6b7280';
+}

@@ -1,4 +1,4 @@
-// app/page-new.tsx - 沉浸式无限画布版本
+// app/page-new.tsx - 修复类型错误版
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -12,16 +12,32 @@ import PhotonList from '@/components/PhotonList';
 import CompanyView from '@/components/CompanyView';
 import TemplateLegend from '@/components/TemplateLegend';
 import DatabaseStatus from '@/components/DatabaseStatus';
-import { Photon, DbStatus } from '@/lib/types'; // 引用你新上传的 types
+import { Photon, DbStatus } from '@/lib/types';
 
-// 将 Photon 类型转换为组件内部使用的扩展类型（兼容之前的逻辑）
+// 扩展类型定义
 interface ExtendedPhoton extends Photon {
   color?: string;
   year?: number;
-  likes: number; // 确保 likes 存在
+  likes: number;
 }
 
-// 光子详情模态框（保持不变，略微优化样式）
+// 定义 StarCanvas 需要的严格类型
+interface StarPhotonData {
+  id: string | number;
+  x: number;
+  y: number;
+  size: number;
+  brightness: number;
+  type: string;
+  company: string;
+  year: number;      // 必须是 number
+  content: string;
+  author: string;
+  likes: number;
+  color: string;     // 必须是 string
+  companyColor: string;
+}
+
 function PhotonDetailModal({ photon, onClose, onLike, companyColors }: any) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -126,7 +142,6 @@ export default function HomePage() {
       }));
 
       const demoPhotons = getDemoPhotons();
-      // 如果数据库为空或连接失败，混合演示数据
       setPhotons(error ? demoPhotons : [...dbPhotons, ...demoPhotons]);
       setDbStatus(error ? 'error' : 'connected');
     } catch (err) {
@@ -140,13 +155,13 @@ export default function HomePage() {
 
   const getTypeColor = (type: string): string => {
     const colors: Record<string, string> = {
-      'moment': '#3b82f6', // blue
-      'prophecy': '#8b5cf6', // purple
-      'culture': '#f59e0b', // amber
-      'inspiration': '#06b6d4', // cyan
-      'darkmoment': '#ef4444', // red
-      'history': '#f97316', // orange
-      'onsite': '#10b981' // emerald
+      'moment': '#3b82f6',
+      'prophecy': '#8b5cf6',
+      'culture': '#f59e0b',
+      'inspiration': '#06b6d4',
+      'darkmoment': '#ef4444',
+      'history': '#f97316',
+      'onsite': '#10b981'
     };
     return colors[type] || '#6b7280';
   };
@@ -155,34 +170,33 @@ export default function HomePage() {
     loadPhotons();
   }, []);
 
-  // 准备星空数据
-  const getStarfieldData = () => {
+  // 准备星空数据 - 这里的返回类型必须匹配 StarCanvas 的要求
+  const getStarfieldData = (): StarPhotonData[] => {
     return photons.map(photon => {
-      // X轴：时间 (2015-2035)
-      const year = photon.year || 2024;
-      // 增加一点随机扰动，让同一年的点不要完全重叠
+      // 1. 确保 year 是数字
+      const safeYear = photon.year || 2024;
+      
       const yearRandom = (Math.random() - 0.5) * 0.8; 
-      const yearProgress = (year + yearRandom - timeRange.start) / (timeRange.end - timeRange.start);
-      // 映射到 5% - 95% 的屏幕宽度
+      const yearProgress = (safeYear + yearRandom - timeRange.start) / (timeRange.end - timeRange.start);
       const x = Math.max(5, Math.min(95, yearProgress * 90 + 5)); 
       
-      // Y轴：基于公司哈希 + 随机，形成“河流”感
-      // 如果有 activeCompany，则让该公司的点更集中在屏幕中间
       let y;
       if (activeCompany && photon.company === activeCompany) {
-         y = 30 + Math.random() * 40; // 30% - 70%
+         y = 30 + Math.random() * 40; 
       } else {
-         // 简单的哈希函数将公司名转为 0-100 的位置
          const hash = photon.company.split('').reduce((a,b)=>a+b.charCodeAt(0),0);
          const baseY = (hash % 80) + 10;
-         y = baseY + (Math.random() - 0.5) * 10; // 添加随机散布
+         y = baseY + (Math.random() - 0.5) * 10; 
       }
       
+      // 2. 构造返回对象，显式覆盖 year 和 color
       return {
         ...photon,
         x,
         y,
-        size: Math.min(50, Math.max(10, photon.likes / 5 + 8)), // 调整大小逻辑
+        year: safeYear, // 显式赋值，确保不是 undefined
+        color: photon.color || getTypeColor(photon.type), // 显式赋值
+        size: Math.min(50, Math.max(10, photon.likes / 5 + 8)), 
         brightness: Math.min(1, Math.max(0.4, photon.likes / 50)),
         companyColor: COMPANY_COLORS[photon.company] || '#6b7280'
       };
@@ -196,7 +210,7 @@ export default function HomePage() {
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden text-white font-sans selection:bg-blue-500/30">
       
-      {/* 1. 背景层：星空画布 (始终渲染，作为基底) */}
+      {/* 1. 背景层：星空画布 */}
       <div className={`absolute inset-0 transition-opacity duration-700 ${viewMode === 'starfield' ? 'opacity-100' : 'opacity-20 blur-sm'}`}>
         <StarCanvas 
           photons={getStarfieldData()}
@@ -209,7 +223,6 @@ export default function HomePage() {
 
       {/* 2. UI 悬浮层：顶部导航 */}
       <div className="absolute top-0 left-0 right-0 z-40 p-6 flex justify-between items-start pointer-events-none">
-        {/* 左上：Logo & 标题 */}
         <div className="pointer-events-auto flex flex-col gap-1">
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-[0_0_20px_rgba(59,130,246,0.5)] animate-pulse">
@@ -226,7 +239,6 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* 右上：操作区 */}
         <div className="pointer-events-auto flex flex-col items-end gap-3">
           <DatabaseStatus status={dbStatus} photonCount={photons.length} />
           
@@ -243,12 +255,10 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 3. UI 悬浮层：底部控制 (仅在星空模式显示) */}
+      {/* 3. UI 悬浮层：底部控制 */}
       {viewMode === 'starfield' && (
         <div className="absolute bottom-0 left-0 right-0 z-30 p-6 pointer-events-none">
           <div className="flex flex-col items-center gap-6">
-            
-            {/* 图例筛选器 */}
             <div className="pointer-events-auto">
               <TemplateLegend 
                 templates={PHOTON_TEMPLATES}
@@ -257,7 +267,6 @@ export default function HomePage() {
               />
             </div>
 
-            {/* 时间轴装饰 */}
             <div className="w-full max-w-4xl flex justify-between text-xs text-white/30 font-mono">
               <span>2015</span>
               <span>2020</span>
@@ -287,7 +296,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 全局模态框 */}
       {isAddModalOpen && (
         <AddPhotonModal 
           onClose={() => setIsAddModalOpen(false)}
@@ -318,13 +326,13 @@ export default function HomePage() {
   );
 }
 
-// 演示数据生成器 (为了演示效果，保留在文件底部)
+// 演示数据
 function getDemoPhotons(): ExtendedPhoton[] {
   const companies = ["华为", "蔚来", "小鹏", "卓驭", "特斯拉", "百度", "理想", "Momenta", "地平线", "小米"];
   const types = ["moment", "prophecy", "culture", "inspiration", "darkmoment", "history"];
   
   return Array.from({ length: 50 }).map((_, i) => {
-    const year = 2015 + Math.floor(Math.random() * 21); // 2015-2035
+    const year = 2015 + Math.floor(Math.random() * 21);
     const company = companies[Math.floor(Math.random() * companies.length)];
     const type = types[Math.floor(Math.random() * types.length)];
     
@@ -337,7 +345,7 @@ function getDemoPhotons(): ExtendedPhoton[] {
       time: `${year}-05-20`,
       company,
       year,
-      color: '#3b82f6', // 这里的颜色会被 getStarfieldData 里的逻辑覆盖，所以初始值不重要
+      color: '#3b82f6',
       isFromDB: false
     };
   });

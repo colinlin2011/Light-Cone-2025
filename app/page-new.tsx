@@ -1,10 +1,11 @@
-// app/page-new.tsx - 科技感动画完整版
+// app/page-new.tsx - 修复版：统一类型导入
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { PHOTON_TEMPLATES } from '@/lib/templates';
 import { COMPANY_COLORS } from '@/lib/companyColors';
+import { Photon, StarPhoton } from '@/lib/types'; // ✨ 统一导入
 import StarCanvas from '@/components/StarCanvas';
 import AddPhotonModal from '@/components/AddPhotonModal';
 import ViewSelector from '@/components/ViewSelector';
@@ -14,38 +15,6 @@ import TemplateLegend from '@/components/TemplateLegend';
 import DatabaseStatus from '@/components/DatabaseStatus';
 
 type ViewMode = 'starfield' | 'list' | 'company';
-
-interface StarPhoton {
-  id: string | number;
-  x: number;
-  y: number;
-  size: number;
-  brightness: number;
-  type: string;
-  company: string;
-  year: number;
-  content: string;
-  author: string;
-  likes: number;
-  color: string;
-  companyColor: string;
-}
-
-interface Photon {
-  id: string | number;
-  content: string;
-  author: string;
-  type: string;
-  likes: number;
-  time: string;
-  company: string;
-  author_name?: string;
-  author_company?: string;
-  author_profession?: string;
-  isFromDB?: boolean;
-  color?: string;
-  year?: number;
-}
 
 // 轻量级悬停卡片组件
 function PhotonCompactCard({ photon }: { photon: StarPhoton }) {
@@ -143,7 +112,6 @@ export default function HomePage() {
     } catch (error) {
       console.error('加载失败:', error);
       setDbStatus('error');
-      // 使用示例数据
       const demoPhotons = getDemoPhotons();
       console.log('使用演示数据:', demoPhotons.length, '条');
       setPhotons(demoPhotons);
@@ -257,7 +225,6 @@ export default function HomePage() {
       });
     }
 
-    // 添加高质量特殊数据
     demoPhotons.push(
       {
         id: 'special_1',
@@ -293,7 +260,6 @@ export default function HomePage() {
       {/* 顶部导航栏 */}
       <div className="fixed top-0 left-0 right-0 z-50 px-6 pt-6 pb-4 bg-gradient-to-b from-black/90 to-transparent">
         <div className="flex justify-between items-start">
-          {/* 左侧标题 */}
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="text-5xl animate-pulse">🌌</div>
@@ -307,7 +273,6 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* 右侧控制区 */}
           <div className="flex flex-col items-end gap-4">
             <DatabaseStatus status={dbStatus} photonCount={photons.length} />
             
@@ -333,10 +298,8 @@ export default function HomePage() {
 
       {/* 主内容区域 */}
       <div className="pt-32 pb-24 px-6 min-h-screen">
-        {/* 星空视图 */}
         {viewMode === 'starfield' && (
           <div className="relative h-[calc(100vh-12rem)] rounded-3xl overflow-hidden border border-cyan-500/20">
-            {/* 角落装饰 */}
             <div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-cyan-500/30 pointer-events-none"></div>
             <div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-cyan-500/30 pointer-events-none"></div>
             <div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-cyan-500/30 pointer-events-none"></div>
@@ -350,7 +313,6 @@ export default function HomePage() {
               activeTemplate={activeTemplate}
             />
             
-            {/* 左侧公司筛选 */}
             <div className="absolute left-6 top-6">
               <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4">
                 <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
@@ -395,7 +357,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* 底部图例 */}
             <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2">
               <TemplateLegend 
                 templates={PHOTON_TEMPLATES}
@@ -404,7 +365,6 @@ export default function HomePage() {
               />
             </div>
 
-            {/* 交互提示 */}
             {photons.length > 0 && (
               <div className="absolute bottom-6 right-6">
                 <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-3 animate-pulse">
@@ -418,14 +378,12 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 列表视图 */}
         {viewMode === 'list' && (
           <div className="h-[calc(100vh-12rem)] bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden">
             <PhotonList photons={photons} />
           </div>
         )}
 
-        {/* 公司视图 */}
         {viewMode === 'company' && (
           <div className="h-[calc(100vh-12rem)] bg-black/60 backdrop-blur-2xl rounded-3xl border border-white/10 overflow-hidden">
             <CompanyView photons={photons} />
@@ -433,7 +391,6 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* 加载状态 */}
       {isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
           <div className="text-center">
@@ -443,7 +400,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 光子详情模态框 */}
       {selectedPhoton && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedPhoton(null)} />
@@ -473,36 +429,4 @@ export default function HomePage() {
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                   <span className="text-white">👤</span>
-                </div>
-                <div>
-                  <div className="text-sm text-white">{selectedPhoton.author}</div>
-                  <div className="text-xs text-gray-500 mt-1">{selectedPhoton.year || '未知年份'} · {selectedPhoton.likes} 共鸣</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button onClick={() => handleLikePhoton(selectedPhoton.id)} className="flex-1 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-semibold text-white flex items-center justify-center gap-3 hover:scale-105 transition-all">
-                <span className="text-xl">💫</span>
-                <span>共鸣 ({selectedPhoton.likes})</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 添加光子模态框 */}
-      {isAddModalOpen && (
-        <AddPhotonModal 
-          onClose={() => setIsAddModalOpen(false)}
-          onSubmitSuccess={() => {
-            loadPhotons();
-            setIsAddModalOpen(false);
-          }}
-          templates={PHOTON_TEMPLATES}
-          companyColors={COMPANY_COLORS}
-        />
-      )}
-    </div>
-  );
-}
+               
